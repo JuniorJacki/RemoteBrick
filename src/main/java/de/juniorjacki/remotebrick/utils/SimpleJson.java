@@ -31,8 +31,12 @@ public class SimpleJson {
 
     public int optInt(String key) { return optInt(key, 0); }
     public int optInt(String key, int fallback) {
-        Object val = map.get(key);
-        return val != null ? toInt(val) : fallback;
+        try {
+            Object val = map.get(key);
+            return val != null ? toInt(val) : fallback;
+        } catch (Exception e) {
+            return fallback;
+        }
     }
 
     public long getLong(String key) {

@@ -30,6 +30,7 @@ public abstract class ConnectedDevice {
     }
 
     public boolean isFunctional() {
+        if (deviceRoot.getDevice(port) == null) return false;
         return deviceRoot.getDevice(port).type == this.type;
     };
 

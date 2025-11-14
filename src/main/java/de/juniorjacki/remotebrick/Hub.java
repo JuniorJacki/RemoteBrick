@@ -5,11 +5,13 @@ import de.juniorjacki.remotebrick.devices.ConnectedDevice;
 import de.juniorjacki.remotebrick.devices.Motor;
 import de.juniorjacki.remotebrick.devices.UltrasonicSensor;
 import de.juniorjacki.remotebrick.types.*;
+import de.juniorjacki.remotebrick.types.Image;
 import de.juniorjacki.remotebrick.utils.JsonBuilder;
 import de.juniorjacki.remotebrick.utils.JsonParser;
 import de.juniorjacki.remotebrick.utils.SimpleJson;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
+import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -30,7 +32,7 @@ public class Hub {
     static List<Hub> connectedHubs = new ArrayList<>();
     static {
         try {
-            System.load(new File("src/libs/BluetoothHubJNI.dll").getAbsolutePath());
+            System.load(new File("src/libs/HubConnector.dll").getAbsolutePath());
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                connectedHubs.forEach(hub ->  hub.disconnect(false));
                connectedHubs.clear();
@@ -38,6 +40,20 @@ public class Hub {
         } catch (Exception e) {
             System.err.println("DLL nicht geladen: " + e.getMessage());
         }
+    }
+
+    private static List<BrickListener> listeners = new ArrayList<BrickListener>();
+    public static interface BrickListener {
+        void newHubConnected(Hub hub);
+        void hubDisconnected(Hub hub);
+    }
+
+    public static void addListener(BrickListener listener) {
+        listeners.add(listener);
+    }
+
+    public static void removeListener(BrickListener listener) {
+        listeners.remove(listener);
     }
 
     public static Hub connect(String macAddress) {
@@ -48,7 +64,7 @@ public class Hub {
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {}
-        return new Hub(h);
+        return new Hub(h,macAddress);
     }
 
     public Control getHubControl() {
@@ -60,10 +76,25 @@ public class Hub {
     }
 
 
+
+
     // Hub POWER
     private final AtomicReference<Double> batteryVoltage =  new AtomicReference<>(0.0);
     private final AtomicInteger batteryPercentage =  new AtomicInteger(0);
     private final AtomicBoolean pluggedIn = new AtomicBoolean(false);
+
+
+    public AtomicReference<Double> getBatteryVoltage() {
+        return batteryVoltage;
+    }
+
+    public AtomicInteger getBatteryPercentage() {
+        return batteryPercentage;
+    }
+
+    public AtomicBoolean getPluggedIn() {
+        return pluggedIn;
+    }
 
     // HUBDATA
     private final AtomicInteger accelerationX = new AtomicInteger(0);
@@ -76,9 +107,12 @@ public class Hub {
     private final AtomicInteger pitch = new AtomicInteger(0);
     private final AtomicInteger roll = new AtomicInteger(0);
     private final AtomicLong programmTime = new AtomicLong(0);
+    private final AtomicReference<HubState> state = new AtomicReference<>(HubState.Laying);
 
     private final AtomicReference<String> unknownData = new AtomicReference<>("");
     private final Map<Port, ConnectedDevice> connectedDevices = new ConcurrentHashMap<>();
+
+    public HubState getHubState() {return state.get();}
 
     public int getAccelerationX() { return accelerationX.get(); }
     public int getAccelerationY() { return accelerationY.get(); }
@@ -245,6 +279,10 @@ public class Hub {
         public interface HubEventListener {
             void newDeviceConnected(ConnectedDevice device);
             void deviceDisconnected(ConnectedDevice device);
+            void hubWasKnocked();
+            void hubChangedState(HubState newState);
+            void hubButtonPressed(HubButton button);
+            void hubButtonReleased(HubButton button,long duration);
         }
 
         private List<HubEventListener> listeners = new ArrayList<HubEventListener>();
@@ -258,11 +296,41 @@ public class Hub {
         }
 
         private void newDeviceConnected(ConnectedDevice device) {
-            listeners.forEach(listener -> listener.newDeviceConnected(device));
+            listeners.forEach(listener -> new Thread(() -> listener.newDeviceConnected(device)).start());
         }
 
         private void deviceDisconnected(ConnectedDevice device) {
-            listeners.forEach(listener -> listener.deviceDisconnected(device));
+            listeners.forEach(listener -> new Thread(() -> listener.deviceDisconnected(device)).start());
+        }
+
+        private void hubWasKnocked() {
+            listeners.forEach(listener -> new Thread(listener::hubWasKnocked).start());
+        }
+
+        private void hubChangedState(HubState newState) {
+            listeners.forEach(listener -> new Thread(() -> listener.hubChangedState(newState)).start());
+        }
+
+        private void hubButtonWasPressed(SimpleJsonArray data) {
+            new Thread(() -> {
+                try {
+                    String button = data.optString(0);
+                    HubButton hButton = switch (button) {
+                        case "left" -> HubButton.LEFT;
+                        case "right" -> HubButton.RIGHT;
+                        case "center" -> HubButton.CENTER;
+                        default -> null;
+                    };
+                    if (hButton != null) {
+                        int duration = data.optInt(1);
+                        if (duration > 0) {
+                            listeners.forEach(listener -> new Thread(() -> listener.hubButtonReleased(hButton,duration)).start());
+                        } else {
+                            listeners.forEach(listener -> new Thread(() -> listener.hubButtonPressed(hButton)).start());
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }).start();
         }
 
         List<String> taskIDsInUse = new ArrayList<>(); // TaskIDs currently in Use
@@ -298,8 +366,6 @@ public class Hub {
             try {
                 String taskID = extractBetween(packet, "\"i\":\"", "\"");
                 String result = extractBetween(packet, "\"r\":", "}");
-
-                System.out.println("new task result " + taskID + " " + result);
                 if (waitingResults.containsKey(taskID)) {
                     waitingResults.get(taskID).complete(result);
                     taskIDsInUse.remove(taskID);
@@ -311,22 +377,48 @@ public class Hub {
 
         private void dataUpdate(String data) {
             try {
-                SimpleJson parsedData = JsonParser.parseObject(data);
-                switch (parsedData.getInt("m")) {
-                    case 0 -> {
-                        SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
-                        new Thread(() -> { updateDevices(hubDataArray);}).start();
-                        new Thread(() -> { updateHubData(hubDataArray);}).start();
-                    }
-                    case 2 -> {
-                        SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
-                        new Thread(() -> { updatePowerData(hubDataArray);}).start();
-                    }
-                    default -> {
-                        System.out.println("Unknown Data Received with Code: " + parsedData.getInt("m") + " " + data);
+                if (data.startsWith("{")) {
+                    SimpleJson parsedData = JsonParser.parseObject(data);
+                    switch (parsedData.optInt("m",-1)) {
+                        case 0 -> {
+                            SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
+                            new Thread(() -> { updateDevices(hubDataArray);}).start();
+                            new Thread(() -> { updateHubData(hubDataArray);}).start();
+                        }
+                        case 2 -> {
+                            SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
+                            new Thread(() -> { updatePowerData(hubDataArray);}).start();
+                        }
+                        case 3 -> {
+                            SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
+                            hubButtonWasPressed(hubDataArray);
+                        }
+                        case 4 -> {
+                            hubWasKnocked();
+                        }
+                        case 14 -> {
+                            HubState state = HubState.values()[parsedData.optInt("p")];
+                            hubChangedState(state);
+                            hub.state.set(state);
+                        }
+                        case -1 -> {
+                            switch (parsedData.optString("m")) {
+                                case "runtime_error" -> {
+                                    SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
+                                    System.err.println(hub.getMacAddress() + " " + new String(Base64.getDecoder().decode(hubDataArray.optString(3))));
+                                }
+                                default -> {
+                                    System.out.println("Unknown Data Received with Code: " + parsedData.optString("m") + " " + data);
+                                }
+                            }
+                        }
+                        default -> {
+                            System.out.println("Unknown Data Received with Code: " + parsedData.optInt("m") + " " + data);
+                        }
                     }
                 }
             } catch (Exception ignored) {
+                System.out.println("error:" + data);
                 ignored.printStackTrace();
             }
         }
@@ -400,16 +492,17 @@ public class Hub {
 
 
         Thread servicethread = null;
+        long lastDataTimestamp = System.currentTimeMillis();
 
         private void startService() {
             servicethread = new Thread(() -> {
-                System.out.println("Starting Hub listener Service");
                 while (isActive) {
                     try (RawInputStream raw = new RawInputStream(this.hub.handle)) {
                         byte[] packet;
                         while (isActive) {
                             packet = raw.readPacket();
                             if (packet != null && packet.length > 0) {
+                                lastDataTimestamp = System.currentTimeMillis();
                                 String packetValue = new String(packet, 0, packet.length - 1,StandardCharsets.UTF_8);
                                 if (packetValue.contains("{\"i\":")) {
                                     taskResult(packetValue);
@@ -417,6 +510,9 @@ public class Hub {
                                     dataUpdate(packetValue);
                                 }
                             } else {
+                                if (System.currentTimeMillis() - lastDataTimestamp > 5000) {
+                                    hub.disconnect();
+                                }
                                 Thread.sleep(10);
                             }
                         }
@@ -430,6 +526,7 @@ public class Hub {
         public void stopService() {
             isActive = false;
             servicethread.interrupt();
+            connectedDevices.clear();
         }
 
         static class RawInputStream extends InputStream {
@@ -492,18 +589,17 @@ public class Hub {
     }
 
 
-    private final Control hubControl;
-    private final Listener hubListener;
 
-    private Hub(ByteBuffer handle) {
+    private Hub(ByteBuffer handle,String mac) {
         this.handle = handle;
         this.hubListener = new Listener(this);
         this.hubControl = new Control(this);
+        this.mac = mac;
         connectedHubs.add(this);
+        new Thread(() -> listeners.forEach(brickListener -> brickListener.newHubConnected(this))).start();
     }
 
     public int send(String data) {
-        System.out.println("Sending: " + data);
         return sendNative(handle,data.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -515,9 +611,19 @@ public class Hub {
         hubListener.stopService();
         if (handle != null) disconnectNative(handle);
         if (removeFromList) connectedHubs.remove(this);
+        new Thread(() -> listeners.forEach(brickListener -> brickListener.hubDisconnected(this))).start();
     }
 
+    private final Control hubControl;
+    private final Listener hubListener;
+
+    public String getMacAddress() {
+        return mac;
+    }
+
+    private final String mac;
     private final ByteBuffer handle;
+
     private static native ByteBuffer connectNative(String mac);
     private static native void disconnectNative(ByteBuffer handle);
     private static native int sendNative(ByteBuffer handle, byte[] data);
