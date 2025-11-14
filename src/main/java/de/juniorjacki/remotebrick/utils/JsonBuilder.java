@@ -1,8 +1,12 @@
+/*
+ * Copyright (c) 2025 JuniorJacki
+ * All Rights Reserved
+ */
+
 package de.juniorjacki.remotebrick.utils;
 
 import de.juniorjacki.remotebrick.types.Port;
 
-import java.util.SortedMap;
 
 public class JsonBuilder {
     private final java.util.Map<String, Object> data = new  java.util.LinkedHashMap<>();

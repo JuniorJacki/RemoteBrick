@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 JuniorJacki
+ * All Rights Reserved
+ */
+
 package de.juniorjacki.remotebrick.utils;
 
 import java.util.ArrayList;
@@ -6,14 +11,10 @@ import java.util.List;
 public class SimpleJsonArray {
     final List<Object> list = new ArrayList<>();
 
-    // --- Konstruktor nur für Parser ---
     SimpleJsonArray() {}
 
     public int length() { return list.size(); }
 
-    // ===================== SICHERE OPT-METHODEN =====================
-
-    /** Gibt Object oder null zurück – nie Exception */
     public Object opt(int index) {
         return (index >= 0 && index < list.size()) ? list.get(index) : null;
     }
@@ -23,7 +24,7 @@ public class SimpleJsonArray {
         Object val = opt(index);
         if (val == null) return fallback;
         if (val instanceof String s) return s;
-        return val.toString(); // sicher: alles hat toString()
+        return val.toString();
     }
 
     public int optInt(int index) { return optInt(index, 0); }
@@ -89,8 +90,6 @@ public class SimpleJsonArray {
         return val instanceof SimpleJsonArray ? (SimpleJsonArray) val : null;
     }
 
-    // ===================== UNSICHERE GET-METHODEN (nur für sichere Fälle) =====================
-
     public String getString(int index) {
         Object val = get(index);
         return val.toString();
@@ -132,7 +131,6 @@ public class SimpleJsonArray {
         return list.get(index);
     }
 
-    // ===================== INTERNE KONVERTIERUNGEN (nur für getX()) =====================
 
     private int toInt(Object val) {
         if (val instanceof Number n) return n.intValue();

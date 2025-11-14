@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 JuniorJacki
+ * All Rights Reserved
+ */
+
 package de.juniorjacki.remotebrick;
 
 import de.juniorjacki.remotebrick.devices.ColorSensor;
@@ -29,6 +34,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class Hub {
 
+    /**
+     * List of Connected Hubs
+     */
     static List<Hub> connectedHubs = new ArrayList<>();
     static {
         try {
@@ -42,20 +50,39 @@ public class Hub {
         }
     }
 
+    /**
+     * List of all Subscribed Listeners for Brick Events
+     */
     private static List<BrickListener> listeners = new ArrayList<BrickListener>();
-    public static interface BrickListener {
+
+    /**
+     * Interface for Brick Events
+     */
+    public interface BrickListener {
         void newHubConnected(Hub hub);
         void hubDisconnected(Hub hub);
     }
 
+    /**
+     * Subscribes given Listener to Brick Events
+     */
     public static void addListener(BrickListener listener) {
         listeners.add(listener);
     }
 
+    /**
+     * Unsubscribes given Listener from Brick Events
+     */
     public static void removeListener(BrickListener listener) {
         listeners.remove(listener);
     }
 
+    /**
+     * Connect new Inventor Hub
+     * Inventor Hub should already been connected with the Machina before using it here! (Connect it via you Bluetooth Settings or the Mindstorms App)
+     * @param macAddress Mac Address of Hub
+     * @return Hub if connection was Successfully or null
+     */
     public static Hub connect(String macAddress) {
         ByteBuffer h = connectNative(macAddress);
         if (h == null || !h.isDirect()) {
@@ -67,10 +94,16 @@ public class Hub {
         return new Hub(h,macAddress);
     }
 
+    /**
+     * @return Hub Control Methods
+     */
     public Control getHubControl() {
         return hubControl;
     }
 
+    /**
+     * @return Hub Listiner Methods
+     */
     public Listener getListener() {
         return hubListener;
     }
@@ -92,7 +125,7 @@ public class Hub {
         return batteryPercentage;
     }
 
-    public AtomicBoolean getPluggedIn() {
+    public AtomicBoolean isPluggedIn() {
         return pluggedIn;
     }
 
@@ -129,11 +162,17 @@ public class Hub {
     public long getProgrammTime() { return programmTime.get(); }
     public String getUnknownData() { return unknownData.get(); }
 
-    // Immutable Snapshot der Geräte
+    /**
+     * @return List of All Connected Devices
+     */
     public List<ConnectedDevice> getDevices() {
         return List.copyOf(connectedDevices.values());
     }
 
+    /**
+     * @param port Device Port
+     * @return ConnectedDevice or null
+     */
     public ConnectedDevice getDevice(Port port) {
         return connectedDevices.get(port);
     }
@@ -156,10 +195,16 @@ public class Hub {
 
         }
 
+        /**
+         * @return Display Methods
+         */
         public Display display() {
             return this.display;
         }
 
+        /**
+         * @return Sound Methods
+         */
         public Sound sound() {
             return this.sound;
         }
@@ -265,8 +310,6 @@ public class Hub {
     }
 
 
-
-
     public class Listener {
         boolean isActive = true;
         final Hub hub;
@@ -335,7 +378,7 @@ public class Hub {
 
         List<String> taskIDsInUse = new ArrayList<>(); // TaskIDs currently in Use
         HashMap<String,CompletableFuture<String>> waitingResults = new HashMap<>(); // Waiting Task results
-        HashMap<String,String> passedResults = new HashMap<>(); // Passed Taskresults without Listener
+        HashMap<String,String> passedResults = new HashMap<>(); // Passed Task results without Listener
 
         String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
         public String newTaskID() {

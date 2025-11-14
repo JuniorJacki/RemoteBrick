@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 JuniorJacki
+ * All Rights Reserved
+ */
+
 package de.juniorjacki.remotebrick.utils;
 
 import java.util.LinkedHashMap;
@@ -6,10 +11,7 @@ import java.util.Map;
 public class SimpleJson {
     final Map<String, Object> map = new LinkedHashMap<>();
 
-    // --- Konstruktor nur für Parser ---
     SimpleJson() {}
-
-    // --- GET-METHODEN (wie org.json) ---
 
     public String getString(String key) {
         Object val = map.get(key);
