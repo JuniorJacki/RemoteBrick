@@ -1,5 +1,7 @@
 package de.juniorjacki.remotebrick.utils;
 
+import de.juniorjacki.remotebrick.types.Port;
+
 import java.util.SortedMap;
 
 public class JsonBuilder {
@@ -92,6 +94,7 @@ public class JsonBuilder {
 
     private String valueToJson(Object value) {
         if (value == null) return "null";
+        if (value instanceof Port) return "\"" + ((Port) value).name() + "\"";
         if (value instanceof String) return "\"" + escape((String) value) + "\"";
         if (value instanceof Number || value instanceof Boolean) return value.toString();
         if (value instanceof java.util.Map) return mapToJson((java.util.Map<?, ?>) value);
