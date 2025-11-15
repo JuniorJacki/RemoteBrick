@@ -29,7 +29,7 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 | **Thread-safe API** | Yes | No | Yes |
 | **No Installation** | Yes | No | No |
 | **100% LEGO App Parity** | Yes | Yes | Yes |
-| **Windows Plug & Play** | Yes | YES | No |
+| **Windows Plug & Play** | Yes | Yes | No |
 
 > **RemoteBrick = LEGO App Features + Java  + Easy Setup**
 
