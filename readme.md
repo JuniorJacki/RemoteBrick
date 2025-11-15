@@ -2,7 +2,7 @@
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue?logo=openjdk)](https://www.oracle.com/java/technologies/downloads/)
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-green?logo=windows)](https://www.microsoft.com/windows)
+[![Windows 8+/10/11](https://img.shields.io/badge/Windows-8%2F10%2F11-green?logo=windows)](https://www.microsoft.com/windows)
 [![Bluetooth Classic](https://img.shields.io/badge/Bluetooth-Classic%20(SPP)-blue?logo=bluetooth)](https://en.wikipedia.org/wiki/Bluetooth#Classic_Bluetooth)
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
