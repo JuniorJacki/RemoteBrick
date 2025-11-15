@@ -59,7 +59,7 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 - **Windows 10 / 11** (64-bit)
 - **Java 21 or higher** (`java --version`)
 - **Bluetooth enabled** Built-in or adapter
-- **LEGO Inventor Hub (51515)**
+- **LEGO Inventor Hub (51515)** with Original Firmware
 
 ---
 
