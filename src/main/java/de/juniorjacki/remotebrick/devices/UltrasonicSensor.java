@@ -73,7 +73,6 @@ public class UltrasonicSensor extends ConnectedDevice{
     @Override
     public void update(SimpleJsonArray data) {
         if (data != null) {
-            System.out.println(data.toString());
             distance = data.optInt(0,201);
         }
     }
