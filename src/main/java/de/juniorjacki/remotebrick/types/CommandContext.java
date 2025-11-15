@@ -10,6 +10,6 @@ import de.juniorjacki.remotebrick.utils.JsonBuilder;
 
 public record CommandContext(String method, JsonBuilder payload) {
     public Command generateCommand(Hub hub) {
-        return new Command(hub, hub.getListener().newTaskID(), JsonBuilder.object().add("m", method).addObject("p", payload != null ? payload : JsonBuilder.object()));
+        return new Command(hub, JsonBuilder.object().add("m", method).addObject("p", payload != null ? payload : JsonBuilder.object()));
     }
 }

@@ -33,11 +33,46 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+
+/**
+ * Central class representing a connected LEGO Inventor Hub.
+ * <p>
+ * Manages Bluetooth communication,
+ * display control, sound, movement, and event handling. All instances are tracked globally.
+ * </p>
+ *
+ * <p><strong>Key Features:</strong></p>
+ * <ul>
+ *   <li>Automatic device detection (Motor, ColorSensor, UltrasonicSensor)</li>
+ *   <li>Real-time sensor & hub state updates</li>
+ *   <li>Display control with {@link Image}, {@link Animation}, text</li>
+ *   <li>Sound playback, motor control, tank steering</li>
+ *   <li>Event system via {@link BrickListener} and {@link Listener.HubEventListener}</li>
+ *   <li>Thread-safe, async command execution via {@link Command}</li>
+ * </ul>
+ *
+ * <p><strong>Connection Workflow:</strong></p>
+ * <pre>
+ * // 1. Pair hub via Bluetooth settings or Mindstorms app
+ * Hub hub = Hub.connect("AA:BB:CC:DD:EE:FF");
+ *
+ * // 2. Use control methods
+ * hub.getHubControl().display().image(Image.HEART).send();
+ *
+ * // 3. Listen to events
+ * hub.getListener().addListener(event -> {
+ *     System.out.println("Button: " + event);
+ * });
+ * </pre>
+ *
+ * @see HubControl
+ * @see Listener
+ * @see Command
+ * @see ConnectedDevice
+ */
 public class Hub {
 
-    /**
-     * List of Connected Hubs
-     */
+    /** Global list of all active hub instances. */
     static List<Hub> connectedHubs = new ArrayList<>();
     static {
         try {
@@ -65,19 +100,23 @@ public class Hub {
         }));
     }
 
+    /** Enables debug logging for native layer and packet parsing. */
     static boolean debugLogging = false;
 
+    /**
+     * Enables or disables debug logging.
+     *
+     * @param enable {@code true} to enable debug output.
+     */
     public static void debugLogging(boolean enable) {
         debugLogging = enable;
     }
 
-    /**
-     * List of all Subscribed Listeners for Brick Events
-     */
+    /** Global listeners for hub connection events. */
     private static List<BrickListener> listeners = new ArrayList<BrickListener>();
 
     /**
-     * Interface for Brick Events
+     * Interface for global hub connection events.
      */
     public interface BrickListener {
         void newHubConnected(Hub hub);
@@ -85,24 +124,31 @@ public class Hub {
     }
 
     /**
-     * Subscribes given Listener to Brick Events
+     * Subscribes a listener to global hub events.
+     *
+     * @param listener The listener to add.
      */
     public static void addListener(BrickListener listener) {
         listeners.add(listener);
     }
 
     /**
-     * Unsubscribes given Listener from Brick Events
+     * Unsubscribes a listener from global hub events.
+     *
+     * @param listener The listener to remove.
      */
     public static void removeListener(BrickListener listener) {
         listeners.remove(listener);
     }
 
     /**
-     * Connect new Inventor Hub
-     * Inventor Hub should already been connected with the Machina before using it here! (Connect it via you Bluetooth Settings or the Mindstorms App)
-     * @param macAddress Mac Address of Hub
-     * @return Hub if connection was Successfully or null
+     * Connects to a LEGO Inventor Hub via Bluetooth.
+     * <p>
+     * The hub must be paired beforehand via system Bluetooth settings or the Mindstorms app.
+     * </p>
+     *
+     * @param macAddress The Bluetooth MAC address of the hub (e.g., {@code "AA:BB:CC:DD:EE:FF"}).
+     * @return A connected {@link Hub} instance, or {@code null} if connection failed.
      */
     public static Hub connect(String macAddress) {
         ByteBuffer h = connectNative(macAddress);
@@ -116,39 +162,37 @@ public class Hub {
     }
 
     /**
-     * @return Hub Control Methods
+     * Returns the control interface for display, sound, and movement.
+     *
+     * @return The {@link HubControl} instance.
      */
-    public Control getHubControl() {
+    public HubControl getControl() {
         return hubControl;
     }
 
     /**
-     * @return Hub Listiner Methods
+     * Returns the event listener interface for hub and device events.
+     *
+     * @return The {@link Listener} instance.
      */
-    public Listener getListener() {
+    public Listener getListenerService() {
         return hubListener;
     }
 
 
-
-
-    // Hub POWER
-    private final AtomicReference<Double> batteryVoltage =  new AtomicReference<>(0.0);
-    private final AtomicInteger batteryPercentage =  new AtomicInteger(0);
+    // --- Power & Battery ---
+    private final AtomicReference<Double> batteryVoltage = new AtomicReference<>(0.0);
+    private final AtomicInteger batteryPercentage = new AtomicInteger(0);
     private final AtomicBoolean pluggedIn = new AtomicBoolean(false);
 
+    /** @return Current battery voltage in volts (e.g., 7.4). */
+    public Double getBatteryVoltage() { return batteryVoltage.get(); }
 
-    public AtomicReference<Double> getBatteryVoltage() {
-        return batteryVoltage;
-    }
+    /** @return Current battery charge level (0–100%). */
+    public Integer getBatteryPercentage() { return batteryPercentage.get(); }
 
-    public AtomicInteger getBatteryPercentage() {
-        return batteryPercentage;
-    }
-
-    public AtomicBoolean isPluggedIn() {
-        return pluggedIn;
-    }
+    /** @return {@code true} if hub is connected to power. */
+    public Boolean isPluggedIn() { return pluggedIn.get(); }
 
     // HUBDATA
     private final AtomicInteger accelerationX = new AtomicInteger(0);
@@ -162,10 +206,10 @@ public class Hub {
     private final AtomicInteger roll = new AtomicInteger(0);
     private final AtomicLong programmTime = new AtomicLong(0);
     private final AtomicReference<HubState> state = new AtomicReference<>(HubState.Laying);
-
     private final AtomicReference<String> unknownData = new AtomicReference<>("");
     private final Map<Port, ConnectedDevice> connectedDevices = new ConcurrentHashMap<>();
 
+    /** @return Current hub orientation state. */
     public HubState getHubState() {return state.get();}
 
     public int getAccelerationX() { return accelerationX.get(); }
@@ -180,70 +224,103 @@ public class Hub {
     public int getPitch() { return pitch.get(); }
     public int getRoll() { return roll.get(); }
 
+    /** @return Runtime of current program in milliseconds. */
     public long getProgrammTime() { return programmTime.get(); }
+
+    /** @return Raw unknown data field from hub data Index 10. */
     public String getUnknownData() { return unknownData.get(); }
 
     /**
-     * @return List of All Connected Devices
+     * Returns all currently connected devices.
+     *
+     * @return Unmodifiable list of {@link ConnectedDevice} instances.
      */
     public List<ConnectedDevice> getDevices() {
         return List.copyOf(connectedDevices.values());
     }
 
     /**
-     * @param port Device Port
-     * @return ConnectedDevice or null
+     * Returns the device connected to a specific port.
+     *
+     * @param port The port (A–F).
+     * @return The {@link ConnectedDevice}, or {@code null} if none.
      */
     public ConnectedDevice getDevice(Port port) {
         return connectedDevices.get(port);
     }
 
     /**
-     * Control Class for Device unabhängige Commands (Motor panzersteuerung ...)
+     * Control interface for hub-wide commands (display, sound, tank steering, etc.).
      */
-    public class Control {
+    public class HubControl {
         final Hub hub;
         final Display display;
         final Sound  sound;
         final Move move;
 
 
-        protected Control(Hub hub) {
+        protected HubControl(Hub hub) {
             this.hub = hub;
             this.display = new Display(hub);
             this.sound = new Sound(hub);
             this.move = new Move(hub);
-
         }
 
+        /**
+         * Enables or disables broadcast message listening.
+         *
+         * @param enable {@code true} to listen.
+         * @return A {@link Command} to send.
+         */
         private Command listenBroadcast(boolean enable) {
             return new CommandContext("scratch.broadcast_listen", JsonBuilder.object().add("enable",enable)).generateCommand(hub);
         }
 
+        /**
+         * Sends a broadcast signal to the hub.
+         *
+         * @param hash  Channel identifier.
+         * @param value Message content.
+         * @return A {@link Command} to send.
+         */
         public Command broadcastSignal(long hash,String value) {
             return new CommandContext("scratch.broadcast_signal", JsonBuilder.object().add("hash",hash).add("value",value)).generateCommand(hub);
         }
 
-        /**
-         * @return Display Methods
-         */
+        /** @return Display control methods. */
         public Display display() {
             return this.display;
         }
 
-        /**
-         * @return Sound Methods
-         */
+        /** @return Sound control methods. */
         public Sound sound() {
             return this.sound;
         }
 
+        /** @return Move control methods. */
+        public Move move() {
+            return move;
+        }
+
+        /** Tank-style movement control. */
         public class Move {
             final Hub hub;
             protected Move(Hub hub) {
                 this.hub = hub;
             }
 
+            /**
+             * Drives two motors for a specific number of degrees.
+             * @param motorL        Left motor.
+             * @param motorR        Right motor.
+             * @param lSpeed        Left speed (-100 to 100).
+             * @param rSpeed        Right speed (-100 to 100).
+             * @param degrees       Degrees to rotate.
+             * @param stopType      Stop behavior.
+             * @param acceleration  Acceleration (0–100).
+             * @param deceleration  Deceleration (0–100).
+             * @return A {@link Command}, or {@code null} if motors invalid.
+             */
             public Command tankDegrees(Motor motorL, Motor motorR, int lSpeed, int rSpeed, int degrees, StopType stopType, int acceleration, int deceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
@@ -251,6 +328,14 @@ public class Hub {
                 return new CommandContext("scratch.move_tank_degrees", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("degrees",degrees).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(hub);
             }
 
+            /** Starts continuous movement with speed control.
+             * @param motorL        Left motor.
+             * @param motorR        Right motor.
+             * @param lSpeed        Left speed (-100 to 100).
+             * @param rSpeed        Right speed (-100 to 100).
+             * @param acceleration  Acceleration (0–100).
+             * @return A {@link Command}, or {@code null} if motors invalid.
+             */
             public Command startSpeeds(Motor motorL,Motor motorR, int lSpeed,int rSpeed,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
@@ -258,6 +343,14 @@ public class Hub {
                 return new CommandContext("scratch.move_start_speeds", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("acceleration",acceleration)).generateCommand(hub);
             }
 
+            /** Starts continuous movement with power control.
+             * @param motorL        Left motor.
+             * @param motorR        Right motor.
+             * @param lPower        Left power (-100 to 100).
+             * @param rPower        Right power (-100 to 100).
+             * @param acceleration  Acceleration (0–100).
+             * @return A {@link Command}, or {@code null} if motors invalid.
+             */
             public Command startPowers(Motor motorL,Motor motorR, int lPower,int rPower,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
@@ -265,6 +358,12 @@ public class Hub {
                 return new CommandContext("scratch.move_start_powers", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lpower",lPower).add("rpower",rPower).add("acceleration",acceleration)).generateCommand(hub);
             }
 
+            /** Stops both motors.
+             * @param motorL        Left motor.
+             * @param motorR        Right motor.
+             * @param stopType      Stop behavior.
+             * @return A {@link Command}, or {@code null} if motors invalid.
+             */
             public Command stop(Motor motorL,Motor motorR, StopType stopType) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
@@ -274,63 +373,137 @@ public class Hub {
 
         }
 
+        /** Sound playback control. */
         public class Sound {
             final Hub hub;
             protected Sound(Hub hub) {
                 this.hub = hub;
             }
 
+            /**
+             * Plays a single beep.
+             *
+             * @param note   MIDI note (0–127).
+             * @param volume Volume (0–100).
+             * @return A {@link Command}.
+             */
             public Command beep(int note,int volume) {
                 return new CommandContext("scratch.sound_beep", JsonBuilder.object().add("note",note).add("volume",volume)).generateCommand(hub);
             }
 
+            /**
+             * Plays a beep for a specific duration.
+             *
+             * @param note     MIDI note (0–127).
+             * @param volume   Volume (0–100).
+             * @param duration Duration in milliseconds.
+             * @return A {@link Command}.
+             */
             public Command beep(int note,int volume,long duration) {
                 return new CommandContext("scratch.sound_beep_for_time", JsonBuilder.object().add("duration",duration).add("note",note).add("volume",volume)).generateCommand(hub);
             }
 
+            /** Stops all sound output. */
             public Command off() {
                 return new CommandContext("scratch.sound_off", null).generateCommand(hub);
             }
         }
 
+        /** 5x5 LED matrix display control. */
         public class Display {
             final Hub hub;
             protected Display(Hub hub) {
                 this.hub = hub;
             }
 
+            /**
+             * Shows scrolling text.
+             *
+             * @param text The text to display.
+             * @return A {@link Command}.
+             */
             public Command text(String text) {
                 return new CommandContext("scratch.display_text", JsonBuilder.object().add("text",text)).generateCommand(hub);
             }
 
+            /**
+             * Shows a static image.
+             *
+             * @param image The {@link Image} to display.
+             * @return A {@link Command}.
+             */
             public Command image(Image image) {
                 return new CommandContext("scratch.display_image", image.toJson()).generateCommand(hub);
             }
 
+            /**
+             * Shows an image for a duration.
+             *
+             * @param image    The {@link Image} to display.
+             * @param duration Duration in milliseconds.
+             * @return A {@link Command}.
+             */
             public Command image(Image image, long duration) {
                 return new CommandContext("scratch.display_image_for", image.toJson().add("duration",duration)).generateCommand(hub);
             }
 
+            /**
+             * Plays an animation.
+             *
+             * @param animation The {@link Animation} to play.
+             * @param async     {@code true} to run in background.
+             * @param delay     Delay between frames in milliseconds.
+             * @param fade      Fade duration between frames in milliseconds.
+             * @param loop      {@code true} to loop animation.
+             * @return A {@link Command}.
+             */
             public Command animation(Animation animation, boolean async, long delay, int fade, boolean loop) {
                 return new CommandContext("scratch.display_animation", animation.toJson().add("async",async).add("delay",delay).add("fade",fade).add("loop",loop)).generateCommand(hub);
             }
 
+            /** Clears the display. */
             public Command clear() {
                 return new CommandContext("scratch.display_clear", null).generateCommand(hub);
             }
 
+            /**
+             * Sets a single pixel.
+             *
+             * @param x          X coordinate (0–4).
+             * @param y          Y coordinate (0–4).
+             * @param brightness Brightness (0–9).
+             * @return A {@link Command}.
+             */
             public Command setPixel(byte x, byte y, int brightness) {
                 return new CommandContext("scratch.display_set_pixel", JsonBuilder.object().add("brightness",brightness).add("x",x).add("y",y)).generateCommand(hub);
             }
 
+            /**
+             * Rotates display content.
+             *
+             * @param direction The rotation direction.
+             * @return A {@link Command}.
+             */
             public Command rotateDirection(Direction direction) {
                 return new CommandContext("scratch.display_rotate_direction", JsonBuilder.object().add("direction",direction.name().toLowerCase())).generateCommand(hub);
             }
 
+            /**
+             * Sets display orientation.
+             *
+             * @param orientation The orientation (0–3).
+             * @return A {@link Command}.
+             */
             public Command rotateOrientation(Orientation orientation) {
                 return new CommandContext("scratch.display_rotate_orientation", JsonBuilder.object().add("orientation",orientation.ordinal()+1)).generateCommand(hub);
             }
 
+            /**
+             * Sets center button LED color.
+             *
+             * @param color RGB color value.
+             * @return A {@link Command}.
+             */
             public Command buttonLight(int color) {
                 return new CommandContext("scratch.center_button_lights", JsonBuilder.object().add("color",color)).generateCommand(hub);
             }
@@ -338,7 +511,9 @@ public class Hub {
         }
     }
 
-
+    /**
+     * Event listener for hub and device events.
+     */
     public class Listener {
         boolean isActive = true;
         final Hub hub;
@@ -348,6 +523,7 @@ public class Hub {
             startService();
         }
 
+        /** Listener interface for hub events. */
         public interface HubEventListener {
             void newDeviceConnected(ConnectedDevice device);
             void deviceDisconnected(ConnectedDevice device);
@@ -360,10 +536,12 @@ public class Hub {
 
         private List<HubEventListener> listeners = new ArrayList<HubEventListener>();
 
+        /** @param listener Listener to add. */
         public void addListener(HubEventListener listener) {
             listeners.add(listener);
         }
 
+        /** @param listener Listener to remove. */
         public void removeListener(HubEventListener listener) {
             listeners.remove(listener);
         }
@@ -418,11 +596,17 @@ public class Hub {
             }).start();
         }
 
+        // Task ID Management
         List<String> taskIDsInUse = new ArrayList<>(); // TaskIDs currently in Use
         HashMap<String,CompletableFuture<String>> waitingResults = new HashMap<>(); // Waiting Task results
         HashMap<String,String> passedResults = new HashMap<>(); // Passed Task results without Listener
-
         String chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+        /**
+         * Generates a unique 4-character task ID.
+         *
+         * @return A unique task ID.
+         */
         public String newTaskID() {
             String randomID = new Random().ints(0, chars.length())
                     .limit(4)
@@ -436,6 +620,12 @@ public class Hub {
             return randomID;
         }
 
+        /**
+         * Queues a task result future.
+         *
+         * @param taskID The task ID.
+         * @return A {@link CompletableFuture} for the result.
+         */
         public CompletableFuture<String> queueTaskResult(String taskID) {
             CompletableFuture<String> future = new CompletableFuture<>();
             if (passedResults.containsKey(taskID)) {
@@ -669,7 +859,6 @@ public class Hub {
             }
         }
 
-        // Hilfsmethode: Text zwischen zwei Strings extrahieren
         private static String extractBetween(String text, String start, String end) {
             int startIdx = text.indexOf(start) + start.length();
             int endIdx = text.indexOf(end, startIdx);
@@ -683,17 +872,24 @@ public class Hub {
     private Hub(ByteBuffer handle,String mac) {
         this.handle = handle;
         this.hubListener = new Listener(this);
-        this.hubControl = new Control(this);
+        this.hubControl = new HubControl(this);
         this.mac = mac;
         connectedHubs.add(this);
-        getHubControl().listenBroadcast(true).sendAsync();
+        getControl().listenBroadcast(true).sendAsync();
         new Thread(() -> listeners.forEach(brickListener -> brickListener.newHubConnected(this))).start();
     }
 
+    /**
+     * Sends a raw JSON command to the hub.
+     *
+     * @param data The JSON string to send.
+     * @return 0 on success, error code otherwise.
+     */
     public int send(String data) {
         return sendNative(handle,data.getBytes(StandardCharsets.UTF_8));
     }
 
+    /** Disconnects from the hub and cleans up resources. */
     public void disconnect() {
         disconnect(true);
     }
@@ -705,16 +901,18 @@ public class Hub {
         new Thread(() -> listeners.forEach(brickListener -> brickListener.hubDisconnected(this))).start();
     }
 
-    private final Control hubControl;
-    private final Listener hubListener;
-
+    /** @return The Bluetooth MAC address of this hub. */
     public String getMacAddress() {
         return mac;
     }
 
+
+    private final HubControl hubControl;
+    private final Listener hubListener;
     private final String mac;
     private final ByteBuffer handle;
 
+    // Native methods
     private static native ByteBuffer connectNative(String mac);
     private static native void disconnectNative(ByteBuffer handle);
     private static native int sendNative(ByteBuffer handle, byte[] data);

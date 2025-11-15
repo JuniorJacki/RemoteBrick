@@ -5,22 +5,18 @@ import java.util.*;
 
 public class JsonBuilder {
 
-    // Kann entweder ein Objekt (Map) oder ein Array (List) sein
     private final Object root;
     private final boolean isArray;
 
-    // --- Konstruktoren ---
     private JsonBuilder(boolean isArray) {
         this.isArray = isArray;
         this.root = isArray ? new ArrayList<>() : new LinkedHashMap<String, Object>();
     }
 
-    // --- Factory-Methoden ---
     public static JsonBuilder object() {
         return new JsonBuilder(false);
     }
-
-    public static JsonBuilder array() {
+    static JsonBuilder array() {
         return new JsonBuilder(true);
     }
 
@@ -138,7 +134,6 @@ public class JsonBuilder {
         return (Map<String, Object>) root;
     }
 
-    // --- toString() ---
     @Override
     public String toString() {
         return isArray ? arrayToJson((List<?>) root) : mapToJson((Map<?, ?>) root);
@@ -199,27 +194,5 @@ public class JsonBuilder {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
-    }
-
-    // === TEST ===
-    public static void main(String[] args) {
-        String json = JsonBuilder.object()
-                .add("name", "Anna")
-                .add("alter", 30)
-                .add("aktiv", true)
-                .add("nullWert", null)
-                .addArray("hobbies", "Lesen", "Sport", 123)
-                .add("sprachen", JsonBuilder.array("DE", "EN"))
-                .add("adresse", JsonBuilder.object()
-                        .add("strasse", "Musterweg 1")
-                        .add("plz", 12345)
-                )
-                .add("kind", JsonBuilder.object()
-                        .add("name", "Tom")
-                        .add("alter", 5)
-                )
-                .toString();
-
-        System.out.println(json);
     }
 }

@@ -14,12 +14,50 @@ public class Main {
             public void newHubConnected(Hub hub) {
                 System.out.println("Successfully connected to Hub " + hub.getMacAddress() + " battery:" + hub.getBatteryPercentage());
 
-                hub.getHubControl().display.text("Verbunden").sendAsync();
-                hub.getHubControl().display.buttonLight(4).send();
-                hub.getHubControl().display.animation(new Animation().addImage(new Image().setPixel(0,1,6)).addImage(new Image().setPixel(1,2,9)),false,1000,5,true).sendAsync();
+                hub.getControl().display.text("Verbunden").sendAsync();
+                hub.getControl().display.buttonLight(4).send();
+                hub.getControl().display.animation(new Animation().addImage(new Image().setPixel(0,1,6)).addImage(new Image().setPixel(1,2,9)),false,1000,5,true).sendAsync();
 
 
-                hub.getListener().addListener(new Hub.Listener.HubEventListener() {
+                hub.getListenerService().addListener(new Hub.Listener.HubEventListener() {
+                    @Override
+                    public void newDeviceConnected(ConnectedDevice device) {
+                        System.out.println("New Device Connected Port " + device.getPort() + " Type:" + device.getType());
+                    }
+
+                    @Override
+                    public void deviceDisconnected(ConnectedDevice device) {
+                        System.out.println("Device Disconnected Port " + device.getPort() + " Type:" + device.getType());
+                    }
+
+                    @Override
+                    public void hubWasKnocked() {
+                        System.out.println("KNOCK! Hub was tapped!");
+                    }
+
+                    @Override
+                    public void hubChangedState(HubState newState) {
+                        System.out.println("New Hubstate " + newState.name());
+                    }
+
+                    @Override
+                    public void hubButtonPressed(HubButton button) {
+                        System.out.println("Button " + button.name() +" pressed");
+                    }
+
+                    @Override
+                    public void hubButtonReleased(HubButton button, long duration) {
+                        System.out.println("Button " + button.name() +" held: " + duration + "ms");
+                    }
+
+                    @Override
+                    public void receivedBroadcastMessage(long hash, String message) {
+                        System.out.println("Received broadcast message: " + message);
+                    }
+                });
+
+
+                hub.getListenerService().addListener(new Hub.Listener.HubEventListener() {
                     boolean on = true;
                     @Override
                     public void newDeviceConnected(ConnectedDevice device) {
@@ -30,6 +68,8 @@ public class Main {
                         }
                         if (device instanceof UltrasonicSensor usensor) {
                             usensor.getControl().lightUp(100,10,50,100).sendAsync();
+
+
                         }
 
                         if (device instanceof ColorSensor csensor) {
@@ -53,8 +93,8 @@ public class Main {
                     public void hubWasKnocked() {
                         if (on) {
                             System.out.println(hub.getMacAddress() + " Was Knocked");
-                            hub.getHubControl().display.text("STOP").sendAsync();
-                            hub.getHubControl().display.buttonLight(2).send();
+                            hub.getControl().display.text("STOP").sendAsync();
+                            hub.getControl().display.buttonLight(2).send();
                             hub.getDevices().forEach(connectedDevice ->
                             {
                                 if (connectedDevice instanceof Motor motor) {
@@ -64,8 +104,8 @@ public class Main {
                             });
                             on = false;
                         } else {
-                            hub.getHubControl().display.text("START").sendAsync();
-                            hub.getHubControl().display.buttonLight(5).send();
+                            hub.getControl().display.text("START").sendAsync();
+                            hub.getControl().display.buttonLight(5).send();
 
                             hub.getDevices().forEach(connectedDevice ->
                             {
@@ -87,7 +127,7 @@ public class Main {
                     @Override
                     public void hubButtonPressed(HubButton button) {
                         if (button == HubButton.LEFT) {
-                            hub.getHubControl().broadcastSignal(4260241449L,"Ente").sendAsync();
+                            hub.getControl().broadcastSignal(4260241449L,"Ente").sendAsync();
                         }
                         System.out.println(hub.getMacAddress() +" Pressed: " + button.name());
                     }
@@ -110,7 +150,7 @@ public class Main {
             }
         });
         new Thread(() -> {Hub.connect("A8:E2:C1:9C:91:02");}).start();
-        new Thread(() -> {Hub.connect("A8:E2:C1:9C:96:DF");}).start();
+        //new Thread(() -> {Hub.connect("A8:E2:C1:9C:96:DF");}).start();
 
     }
 

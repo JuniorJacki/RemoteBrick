@@ -6,7 +6,7 @@
 package de.juniorjacki.remotebrick.types;
 
 public enum StopType {
-            RUNOUT,
+    COAST,
             BRAKE,
-            KEEP_POSITION,
-        }
+            HOLD,
+}
