@@ -7,7 +7,7 @@
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
 
-> **Control your LEGO® Inventor Hub (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
+> **Control your LEGO® Inventor Hubs (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
 > **No LEGO software. No Python. No limits. With Official Firmware on the HUB**
 
 ---
@@ -29,7 +29,8 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 | **Thread-safe API** | Yes | No | Yes |
 | **No Installation** | Yes | No | No |
 | **100% LEGO App Parity** | Yes | Yes | Yes |
-| **Windows Plug & Play** | Yes | Yes | No |
+| **Windows Plug & Use** | Yes | Yes | No |
+| **Multi Hub Support** | Yes | No | No |
 
 > **RemoteBrick = LEGO App Features + Java  + Easy Setup**
 
@@ -51,7 +52,7 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 ---
 
 
-## Plug & Play on Windows
+## Plug & Use on Windows
 
 > **No installation. No drivers. No LEGO app.**
 
@@ -107,6 +108,8 @@ public class MyRobot {
     public static void main(String[] args) {
         // Replace with your hub's MAC address
         Hub hub = Hub.connect("AA:BB:CC:DD:EE:FF");
+        //Hub hub2 = Hub.connect("AB:BC:CD:DE:EF:FG");
+        //Hub hub3 = Hub.connect("AC:BD:CE:DF:EG:FH");
         
         if (hub == null) {
             System.out.println("Failed to connect!");
