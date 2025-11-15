@@ -16,7 +16,6 @@ import de.juniorjacki.remotebrick.utils.JsonParser;
 import de.juniorjacki.remotebrick.utils.SimpleJson;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
-import java.awt.*;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
