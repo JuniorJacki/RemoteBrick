@@ -23,7 +23,7 @@ public class Command {
     }
 
     private boolean push() {
-        return hub.send(new JsonBuilder().add("i", identifier).add(commandPayload).toString()) == 0;
+        return hub.send(JsonBuilder.object().add("i", identifier).addAll(commandPayload).toString()) == 0;
     }
 
 

@@ -56,56 +56,56 @@ public class Motor extends ConnectedDevice{
     public class MotorControl {
         public Command runForDegrees(int speed, int degrees, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_run_for_degrees",new JsonBuilder().add("port",port.name()).add("speed",speed).add("degrees",degrees).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_run_for_degrees",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("degrees",degrees).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command runTimed(int speed, long time, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_run_timed",new JsonBuilder().add("port",port.name()).add("speed",speed).add("time",time).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_run_timed",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("time",time).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command start(int speed, boolean stall, int acceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_start",new JsonBuilder().add("port",port.name()).add("speed",speed).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_start",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command stop(StopType stopType,int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_stop",new JsonBuilder().add("port",port.name()).add("stop",stopType.ordinal()).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_stop",JsonBuilder.object().add("port",port.name()).add("stop",stopType.ordinal()).add("deceleration",deceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command pwm(int power, boolean stall, int acceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_pwm",new JsonBuilder().add("port",port.name()).add("power",power).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_pwm",JsonBuilder.object().add("port",port.name()).add("power",power).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command setPosition(int offset) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_set_position",new JsonBuilder().add("port",port.name()).add("offset",offset)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_set_position",JsonBuilder.object().add("port",port.name()).add("offset",offset)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command goToRelativePosition(int position,int speed, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_go_to_relative_position",new JsonBuilder().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_go_to_relative_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
             }
             return null;
         }
 
         public Command goToPositionWithDirection(int position, int speed, PathDirection direction, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_go_direction_to_position",new JsonBuilder().add("port",port.name()).add("position",position).add("speed",speed).add("direction",direction.name().toLowerCase()).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_go_direction_to_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("direction",direction.name().toLowerCase()).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
             }
             return null;
         }

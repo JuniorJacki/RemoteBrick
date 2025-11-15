@@ -12,16 +12,7 @@ public class Animation {
 
     // Füge ein Image als Frame hinzu
     public Animation addImage(Image image) {
-        // Konvertiere Image → "99099:99099:..."
-        StringBuilder frameData = new StringBuilder();
-        int[][] pixels = getPixelsFromImage(image);
-        for (int y = 0; y < 5; y++) {
-            for (int x = 0; x < 5; x++) {
-                frameData.append(pixels[y][x]);
-            }
-            if (y < 4) frameData.append(":");
-        }
-        frames.add(frameData.toString());
+        frames.add(image.toString());
         return this;
     }
 
@@ -33,8 +24,11 @@ public class Animation {
     }
 
     public JsonBuilder toJson() {
-        return new JsonBuilder().addArray("frames", new java.util.ArrayList<>(frames));
+        return JsonBuilder.object()
+                .add("frames", JsonBuilder.arrayOfStrings(frames.toArray(new String[0])));
     }
+
+
 
 
     @Override

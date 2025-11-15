@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -40,14 +42,34 @@ public class Hub {
     static List<Hub> connectedHubs = new ArrayList<>();
     static {
         try {
-            System.load(new File("src/libs/HubConnector.dll").getAbsolutePath());
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-               connectedHubs.forEach(hub ->  hub.disconnect(false));
-               connectedHubs.clear();
-            }));
+            String dll = "/HubConnector.dll";
+
+            try (InputStream in = Hub.class.getResourceAsStream(dll)) {
+                if (in == null) throw new IOException("DLL nicht gefunden: " + dll);
+
+                File temp = File.createTempFile("hub_", ".dll");
+                temp.deleteOnExit();
+                Files.copy(in, temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+                System.load(temp.getAbsolutePath());
+
+            } catch (Exception e) {
+                throw new UnsatisfiedLinkError("Konnte " + dll + " nicht laden: " + e.getMessage());
+            }
         } catch (Exception e) {
             System.err.println("DLL nicht geladen: " + e.getMessage());
         }
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            connectedHubs.forEach(hub ->  hub.disconnect(false));
+            connectedHubs.clear();
+        }));
+    }
+
+    static boolean debugLogging = false;
+
+    public static void debugLogging(boolean enable) {
+        debugLogging = enable;
     }
 
     /**
@@ -195,6 +217,14 @@ public class Hub {
 
         }
 
+        private Command listenBroadcast(boolean enable) {
+            return new CommandContext("scratch.broadcast_listen", JsonBuilder.object().add("enable",enable)).generateCommand(hub);
+        }
+
+        public Command broadcastSignal(long hash,String value) {
+            return new CommandContext("scratch.broadcast_signal", JsonBuilder.object().add("hash",hash).add("value",value)).generateCommand(hub);
+        }
+
         /**
          * @return Display Methods
          */
@@ -219,28 +249,28 @@ public class Hub {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_tank_degrees", new JsonBuilder().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("degrees",degrees).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_tank_degrees", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("degrees",degrees).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(hub);
             }
 
             public Command startSpeeds(Motor motorL,Motor motorR, int lSpeed,int rSpeed,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_start_speeds", new JsonBuilder().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("acceleration",acceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_start_speeds", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("acceleration",acceleration)).generateCommand(hub);
             }
 
             public Command startPowers(Motor motorL,Motor motorR, int lPower,int rPower,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_start_powers", new JsonBuilder().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lpower",lPower).add("rpower",rPower).add("acceleration",acceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_start_powers", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lpower",lPower).add("rpower",rPower).add("acceleration",acceleration)).generateCommand(hub);
             }
 
             public Command stop(Motor motorL,Motor motorR, StopType stopType) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_stop", new JsonBuilder().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("stop",stopType.ordinal())).generateCommand(hub);
+                return new CommandContext("scratch.move_stop", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("stop",stopType.ordinal())).generateCommand(hub);
             }
 
         }
@@ -252,11 +282,11 @@ public class Hub {
             }
 
             public Command beep(int note,int volume) {
-                return new CommandContext("scratch.sound_beep", new JsonBuilder().add("note",note).add("volume",volume)).generateCommand(hub);
+                return new CommandContext("scratch.sound_beep", JsonBuilder.object().add("note",note).add("volume",volume)).generateCommand(hub);
             }
 
             public Command beep(int note,int volume,long duration) {
-                return new CommandContext("scratch.sound_beep_for_time", new JsonBuilder().add("duration",duration).add("note",note).add("volume",volume)).generateCommand(hub);
+                return new CommandContext("scratch.sound_beep_for_time", JsonBuilder.object().add("duration",duration).add("note",note).add("volume",volume)).generateCommand(hub);
             }
 
             public Command off() {
@@ -271,7 +301,7 @@ public class Hub {
             }
 
             public Command text(String text) {
-                return new CommandContext("scratch.display_text", new JsonBuilder().add("text",text)).generateCommand(hub);
+                return new CommandContext("scratch.display_text", JsonBuilder.object().add("text",text)).generateCommand(hub);
             }
 
             public Command image(Image image) {
@@ -291,19 +321,19 @@ public class Hub {
             }
 
             public Command setPixel(byte x, byte y, int brightness) {
-                return new CommandContext("scratch.display_set_pixel", new JsonBuilder().add("brightness",brightness).add("x",x).add("y",y)).generateCommand(hub);
+                return new CommandContext("scratch.display_set_pixel", JsonBuilder.object().add("brightness",brightness).add("x",x).add("y",y)).generateCommand(hub);
             }
 
             public Command rotateDirection(Direction direction) {
-                return new CommandContext("scratch.display_rotate_direction", new JsonBuilder().add("direction",direction.name().toLowerCase())).generateCommand(hub);
+                return new CommandContext("scratch.display_rotate_direction", JsonBuilder.object().add("direction",direction.name().toLowerCase())).generateCommand(hub);
             }
 
             public Command rotateOrientation(Orientation orientation) {
-                return new CommandContext("scratch.display_rotate_orientation", new JsonBuilder().add("orientation",orientation.ordinal()+1)).generateCommand(hub);
+                return new CommandContext("scratch.display_rotate_orientation", JsonBuilder.object().add("orientation",orientation.ordinal()+1)).generateCommand(hub);
             }
 
             public Command buttonLight(int color) {
-                return new CommandContext("scratch.center_button_lights", new JsonBuilder().add("color",color)).generateCommand(hub);
+                return new CommandContext("scratch.center_button_lights", JsonBuilder.object().add("color",color)).generateCommand(hub);
             }
 
         }
@@ -326,6 +356,7 @@ public class Hub {
             void hubChangedState(HubState newState);
             void hubButtonPressed(HubButton button);
             void hubButtonReleased(HubButton button,long duration);
+            void receivedBroadcastMessage(long hash,String message);
         }
 
         private List<HubEventListener> listeners = new ArrayList<HubEventListener>();
@@ -372,6 +403,18 @@ public class Hub {
                             listeners.forEach(listener -> new Thread(() -> listener.hubButtonPressed(hButton)).start());
                         }
                     }
+                } catch (Exception ex) {
+                    if (debugLogging) ex.printStackTrace();
+                }
+            }).start();
+        }
+
+        private void receivedBroadcastMessage(SimpleJsonArray data) {
+            new Thread(() -> {
+                try {
+                    long hash = data.optLong(0);
+                    String message = data.optString(1);
+                    listeners.forEach(listener -> new Thread(() -> listener.receivedBroadcastMessage(hash,message)).start());
                 } catch (Exception ignored) {}
             }).start();
         }
@@ -444,6 +487,10 @@ public class Hub {
                             hubChangedState(state);
                             hub.state.set(state);
                         }
+                        case 15 -> {
+                            SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
+                            receivedBroadcastMessage(hubDataArray);
+                        }
                         case -1 -> {
                             switch (parsedData.optString("m")) {
                                 case "runtime_error" -> {
@@ -451,18 +498,17 @@ public class Hub {
                                     System.err.println(hub.getMacAddress() + " " + new String(Base64.getDecoder().decode(hubDataArray.optString(3))));
                                 }
                                 default -> {
-                                    System.out.println("Unknown Data Received with Code: " + parsedData.optString("m") + " " + data);
+                                    System.out.println(hub.getMacAddress() + " Unknown Data Received with Code: " + parsedData.optString("m") + " " + data);
                                 }
                             }
                         }
                         default -> {
-                            System.out.println("Unknown Data Received with Code: " + parsedData.optInt("m") + " " + data);
+                            System.out.println(hub.getMacAddress() + " Unknown Data Received with Code: " + parsedData.optInt("m") + " " + data);
                         }
                     }
                 }
-            } catch (Exception ignored) {
-                System.out.println("error:" + data);
-                ignored.printStackTrace();
+            } catch (Exception ex) {
+                if (debugLogging) ex.printStackTrace();
             }
         }
 
@@ -559,7 +605,9 @@ public class Hub {
                                 Thread.sleep(10);
                             }
                         }
-                    } catch (Exception e) {}
+                    } catch (Exception ex) {
+                        if (debugLogging) ex.printStackTrace();
+                    }
                 }
             });
             servicethread.start();
@@ -639,6 +687,7 @@ public class Hub {
         this.hubControl = new Control(this);
         this.mac = mac;
         connectedHubs.add(this);
+        getHubControl().listenBroadcast(true).sendAsync();
         new Thread(() -> listeners.forEach(brickListener -> brickListener.newHubConnected(this))).start();
     }
 

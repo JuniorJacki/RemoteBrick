@@ -13,6 +13,10 @@ import de.juniorjacki.remotebrick.utils.JsonBuilder;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
 public class UltrasonicSensor extends ConnectedDevice{
+    public int getDistance() {
+        return distance;
+    }
+
     private int distance = 0;
 
     public UltrasonicControl getControl() {
@@ -35,7 +39,7 @@ public class UltrasonicSensor extends ConnectedDevice{
     public class UltrasonicControl {
         public Command lightUp(int l1,int l2,int l3,int l4) {
             if (isFunctional()) {
-                return new CommandContext("scratch.ultrasonic_light_up",new JsonBuilder().add("port",port.name()).add("lights",JsonBuilder.array(l1,l2,l3,l4))).generateCommand(deviceRoot);
+                return new CommandContext("scratch.ultrasonic_light_up",JsonBuilder.object().add("port",port.name()).add("lights",JsonBuilder.array(l1,l2,l3,l4))).generateCommand(deviceRoot);
             }
             return null;
         }

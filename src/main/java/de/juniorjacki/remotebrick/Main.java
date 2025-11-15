@@ -1,5 +1,6 @@
 package de.juniorjacki.remotebrick;
 
+import de.juniorjacki.remotebrick.devices.ColorSensor;
 import de.juniorjacki.remotebrick.devices.ConnectedDevice;
 import de.juniorjacki.remotebrick.devices.Motor;
 import de.juniorjacki.remotebrick.devices.UltrasonicSensor;
@@ -15,15 +16,7 @@ public class Main {
 
                 hub.getHubControl().display.text("Verbunden").sendAsync();
                 hub.getHubControl().display.buttonLight(4).send();
-
-                hub.getDevices().forEach(connectedDevice ->
-                {
-                    if (connectedDevice instanceof Motor motor) {
-                        System.out.println(connectedDevice.getPort());
-                        motor.getControl().pwm(100,false,100).sendAsync();
-                    }
-                });
-
+                hub.getHubControl().display.animation(new Animation().addImage(new Image().setPixel(0,1,6)).addImage(new Image().setPixel(1,2,9)),false,1000,5,true).sendAsync();
 
 
                 hub.getListener().addListener(new Hub.Listener.HubEventListener() {
@@ -37,6 +30,17 @@ public class Main {
                         }
                         if (device instanceof UltrasonicSensor usensor) {
                             usensor.getControl().lightUp(100,10,50,100).sendAsync();
+                        }
+
+                        if (device instanceof ColorSensor csensor) {
+                           csensor.getControl().setDeviceMode(ColorSensorMode.RAW).send();
+                            try {
+                                Thread.sleep(5000);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                            csensor.getControl().setDeviceMode(ColorSensorMode.TUPLES).send();
+                            System.out.println(csensor.getRed() + " " + csensor.getGreen() + " " + csensor.getBlue());
                         }
                     }
 
@@ -82,12 +86,20 @@ public class Main {
 
                     @Override
                     public void hubButtonPressed(HubButton button) {
+                        if (button == HubButton.LEFT) {
+                            hub.getHubControl().broadcastSignal(4260241449L,"Ente").sendAsync();
+                        }
                         System.out.println(hub.getMacAddress() +" Pressed: " + button.name());
                     }
 
                     @Override
                     public void hubButtonReleased(HubButton button, long duration) {
                         System.out.println(hub.getMacAddress() +" Released: " + button.name() + " duration: " + duration);
+                    }
+
+                    @Override
+                    public void receivedBroadcastMessage(long hash, String message) {
+                        System.out.println(hub.getMacAddress() +" Received broadcast message: " + message + " with Hash" + hash);
                     }
                 });
             }
@@ -97,13 +109,8 @@ public class Main {
                 System.out.println(hub.getMacAddress() + " Disconnected");
             }
         });
-
-        new Thread(() -> {
-            Hub.connect("A8:E2:C1:9C:91:02");
-            }).start();
-        new Thread(() -> {
-            Hub.connect("A8:E2:C1:9C:96:DF");
-            }).start();
+        new Thread(() -> {Hub.connect("A8:E2:C1:9C:91:02");}).start();
+        new Thread(() -> {Hub.connect("A8:E2:C1:9C:96:DF");}).start();
 
     }
 

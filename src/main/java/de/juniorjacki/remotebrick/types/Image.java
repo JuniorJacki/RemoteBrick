@@ -22,6 +22,11 @@ public class Image {
     }
 
     public JsonBuilder toJson() {
+        return JsonBuilder.object().add("image", this.toString());
+    }
+
+    @Override
+    public String toString() {
         StringBuilder data = new StringBuilder();
         for (int y = 0; y < 5; y++) {
             for (int x = 0; x < 5; x++) {
@@ -29,6 +34,6 @@ public class Image {
             }
             if (y < 4) data.append(":");
         }
-        return new JsonBuilder().add("image", data.toString());
+        return data.toString();
     }
 }
