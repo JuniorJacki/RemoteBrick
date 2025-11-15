@@ -1,4 +1,4 @@
-# RemoteBrick – The **Ultimate** Java API for LEGO® Inventor Hub (51515)
+# RemoteBrick – The **First** Java API for LEGO® Inventor Hub (51515)
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue?logo=openjdk)](https://www.oracle.com/java/technologies/downloads/)
