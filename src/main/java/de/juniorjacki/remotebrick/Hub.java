@@ -58,11 +58,6 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * // 2. Use control methods
  * hub.getHubControl().display().image(Image.HEART).send();
- *
- * // 3. Listen to events
- * hub.getListener().addListener(event -> {
- *     System.out.println("Button: " + event);
- * });
  * </pre>
  *
  * @see HubControl
@@ -74,6 +69,14 @@ public class Hub {
 
     /** Global list of all active hub instances. */
     static List<Hub> connectedHubs = new ArrayList<>();
+
+    /**
+     * @return List of All currently connected Lego Hubs
+     */
+    public static List<Hub> getConnectedHubs() {
+        return java.util.Collections.unmodifiableList(connectedHubs);
+    }
+
     static {
         try {
             String dll = "/HubConnector.dll";
