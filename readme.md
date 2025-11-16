@@ -1,13 +1,13 @@
-# RemoteBrick – The **Ultimate** Java API for LEGO® Inventor Hub (51515)
+# RemoteBrick – The **First** Java API for LEGO® Inventor Hub (51515)
 
 [![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-blue?logo=openjdk)](https://www.oracle.com/java/technologies/downloads/)
-[![Windows 10/11](https://img.shields.io/badge/Windows-10%2F11-green?logo=windows)](https://www.microsoft.com/windows)
+[![Windows 8+/10/11](https://img.shields.io/badge/Windows-8%2F10%2F11-green?logo=windows)](https://www.microsoft.com/windows)
 [![Bluetooth Classic](https://img.shields.io/badge/Bluetooth-Classic%20(SPP)-blue?logo=bluetooth)](https://en.wikipedia.org/wiki/Bluetooth#Classic_Bluetooth)
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
 
-> **Control your LEGO® Inventor Hub (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
+> **Control your LEGO® Inventor Hubs (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
 > **No LEGO software. No Python. No limits. With Official Firmware on the HUB**
 
 ---
@@ -29,7 +29,8 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 | **Thread-safe API** | Yes | No | Yes |
 | **No Installation** | Yes | No | No |
 | **100% LEGO App Parity** | Yes | Yes | Yes |
-| **Windows Plug & Play** | Yes | No | Yes |
+| **Windows Plug & Use** | Yes | Yes | No |
+| **Multi Hub Support** | Yes | No | No |
 
 > **RemoteBrick = LEGO App Features + Java  + Easy Setup**
 
@@ -51,15 +52,15 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 ---
 
 
-## Plug & Play on Windows
+## Plug & Use on Windows
 
 > **No installation. No drivers. No LEGO app.**
 
 ### Requirements
-- **Windows 10 / 11** (64-bit)
+- **Windows 8+ / 10 / 11** (64-bit)
 - **Java 21 or higher** (`java --version`)
 - **Bluetooth enabled** Built-in or adapter
-- **LEGO Inventor Hub (51515)**
+- **LEGO Inventor Hub (51515)** with Original Firmware
 
 ---
 
@@ -107,6 +108,8 @@ public class MyRobot {
     public static void main(String[] args) {
         // Replace with your hub's MAC address
         Hub hub = Hub.connect("AA:BB:CC:DD:EE:FF");
+        //Hub hub2 = Hub.connect("AB:BC:CD:DE:EF:FG");
+        //Hub hub3 = Hub.connect("AC:BD:CE:DF:EG:FH");
         
         if (hub == null) {
             System.out.println("Failed to connect!");
