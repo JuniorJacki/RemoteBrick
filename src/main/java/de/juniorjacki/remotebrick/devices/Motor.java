@@ -8,8 +8,13 @@ package de.juniorjacki.remotebrick.devices;
 import de.juniorjacki.remotebrick.Hub;
 import de.juniorjacki.remotebrick.types.*;
 import de.juniorjacki.remotebrick.utils.JsonBuilder;
-import de.juniorjacki.remotebrick.utils.JsonParser;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents a motor connected to a LEGO Inventor Hub.
@@ -26,6 +31,91 @@ import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
  * @see PathDirection
  */
 public class Motor extends ConnectedDevice{
+
+    public record SubscribedValue(Motor motor, int target, int variance, CompletableFuture<Integer> callback){
+        private boolean check(int curPosition) {
+            if (this.target +variance >= curPosition && this.target -variance <= curPosition) {
+                complete(curPosition+variance);
+                return true;
+            }
+            return false;
+        }
+
+        private void complete(int curPosition) {
+            callback.complete(curPosition);
+        }
+
+        public enum Type {
+            RelativePosition,
+            AbsolutePosition,
+            Speed,
+            Power
+        }
+    };
+
+
+
+    CopyOnWriteArrayList<SubscribedValue> subscribedRelativePosition =  new CopyOnWriteArrayList<>();
+    CopyOnWriteArrayList<SubscribedValue> subscribedSpeed = new CopyOnWriteArrayList<>();
+    CopyOnWriteArrayList<SubscribedValue> subscribedPower = new CopyOnWriteArrayList<>();
+    CopyOnWriteArrayList<SubscribedValue> subscribedAbsolutePosition = new CopyOnWriteArrayList<>();
+
+    private void updatePowerSubscriber(int currentPower) {
+        subscribedPower.removeIf(s -> s.check(currentPower));
+    }
+
+    private void updateSpeedSubscriber(int currentSpeed) {
+        subscribedSpeed.removeIf(s -> s.check(currentSpeed));
+    }
+
+    private void updateRelativePositionSubscriber(int currentPosition) {
+        subscribedRelativePosition.removeIf(s -> s.check(currentPosition));
+    }
+
+    private void updateAbsolutePositionSubscriber(int currentPosition) {
+        subscribedAbsolutePosition.removeIf(s -> s.check(currentPosition));
+    }
+
+
+    public CompletableFuture<Integer> newSubscriber(SubscribedValue.Type type,int target, int variance){
+        CompletableFuture<Integer> newCallback = new CompletableFuture<>();
+        switch (type){
+            case RelativePosition -> subscribedRelativePosition.add(new SubscribedValue(this, target, variance, newCallback));
+            case Speed -> subscribedSpeed.add(new SubscribedValue(this, target, variance, newCallback));
+            case Power -> subscribedPower.add(new SubscribedValue(this, target, variance, newCallback));
+            case AbsolutePosition ->  subscribedAbsolutePosition.add(new SubscribedValue(this, target, variance, newCallback));
+        }
+        return newCallback;
+    }
+
+    public void deleteSubscriber(SubscribedValue.Type type,CompletableFuture<Integer> callback){
+        switch (type){
+            case RelativePosition -> subscribedRelativePosition.removeIf(s -> s.callback.equals(callback));
+            case AbsolutePosition -> subscribedAbsolutePosition.removeIf(s -> s.callback.equals(callback));
+            case Power -> subscribedPower.removeIf(s -> s.callback.equals(callback));
+            case Speed -> subscribedSpeed.removeIf(s -> s.callback.equals(callback));
+        }
+    }
+
+    private void setSpeed(int speed) {
+        updateSpeedSubscriber(speed);
+        this.speed = speed;
+    }
+
+    private void setRelativePosition(int relativePosition) {
+        updateRelativePositionSubscriber(relativePosition);
+        this.relativePosition = relativePosition;
+    }
+
+    private void setPosition(int position) {
+        updateAbsolutePositionSubscriber(position);
+        this.position = position;
+    }
+
+    private void setPower(int power) {
+        updatePowerSubscriber(power);
+        this.power = power;
+    }
 
     /**
      * Current motor speed in percent.
@@ -100,7 +190,7 @@ public class Motor extends ConnectedDevice{
     }
 
 
-    private final MotorControl control = new MotorControl();
+    private final MotorControl control = new MotorControl(this);
     public Motor(Hub deviceRoot, Port port) {
         super(deviceRoot, port,75);
     }
@@ -108,10 +198,10 @@ public class Motor extends ConnectedDevice{
     @Override
     public void update(SimpleJsonArray array) {
         if (array != null) {
-            speed = array.optInt(0);
-            relativePosition = array.optInt(1);
-            position = array.optInt(2);
-            power = array.optInt(3);
+            setSpeed(array.optInt(0));
+            setRelativePosition(array.optInt(1));
+            setPosition(array.optInt(2));
+            setPower(array.optInt(3));
         }
     }
 
@@ -126,6 +216,11 @@ public class Motor extends ConnectedDevice{
      * @see CommandContext
      */
     public class MotorControl {
+
+        final Motor motorref;
+        private MotorControl (Motor ref) {
+            this.motorref = ref;
+        }
 
         /**
          * Runs the motor for a specified number of degrees.
@@ -155,9 +250,9 @@ public class Motor extends ConnectedDevice{
          * @return An executable {@link Command} object, or {@code null} if the motor is not functional.
          * @see StopType
          */
-        public Command runForDegrees(int speed, int degrees, boolean stall, StopType stopType, int acceleration, int deceleration) {
+        public MotorCommand runForDegrees(int speed, int degrees, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_run_for_degrees",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("degrees",degrees).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_run_for_degrees",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("degrees",degrees).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.RelativePosition,getRelativePosition()+degrees);
             }
             return null;
         }
@@ -211,9 +306,9 @@ public class Motor extends ConnectedDevice{
          * @param acceleration  Acceleration rate in percent per second.
          * @return An executable {@link Command}, or {@code null} if not functional.
          */
-        public Command start(int speed, boolean stall, int acceleration) {
+        public MotorCommand start(int speed, boolean stall, int acceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_start",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_start",JsonBuilder.object().add("port",port.name()).add("speed",speed).add("stall",stall).add("acceleration",acceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.Speed,speed);
             }
             return null;
         }
@@ -235,9 +330,9 @@ public class Motor extends ConnectedDevice{
          * @return An executable {@link Command}, or {@code null} if not functional.
          * @see StopType
          */
-        public Command stop(StopType stopType,int deceleration) {
+        public MotorCommand stop(StopType stopType,int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_stop",JsonBuilder.object().add("port",port.name()).add("stop",stopType.ordinal()).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_stop",JsonBuilder.object().add("port",port.name()).add("stop",stopType.ordinal()).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.Speed,0);
             }
             return null;
         }
@@ -256,9 +351,9 @@ public class Motor extends ConnectedDevice{
          * @param acceleration  Acceleration rate in percent per second.
          * @return An executable {@link Command}, or {@code null} if not functional.
          */
-        public Command pwm(int power, boolean stall, int acceleration) {
+        public MotorCommand pwm(int power, boolean stall, int acceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_pwm",JsonBuilder.object().add("port",port.name()).add("power",power).add("stall",stall).add("acceleration",acceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_pwm",JsonBuilder.object().add("port",port.name()).add("power",power).add("stall",stall).add("acceleration",acceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.Power,power);
             }
             return null;
         }
@@ -278,6 +373,8 @@ public class Motor extends ConnectedDevice{
          */
         public Command setPosition(int offset) {
             if (isFunctional()) {
+                // TODO DEBUG Potential LOCK
+                if (!motorref.subscribedRelativePosition.isEmpty()) return null;
                 return new CommandContext("scratch.motor_set_position",JsonBuilder.object().add("port",port.name()).add("offset",offset)).generateCommand(deviceRoot);
             }
             return null;
@@ -307,9 +404,9 @@ public class Motor extends ConnectedDevice{
          * @return An executable {@link Command}, or {@code null} if not functional.
          * @see StopType
          */
-        public Command goToRelativePosition(int position,int speed, boolean stall, StopType stopType, int acceleration, int deceleration) {
+        public MotorCommand goToRelativePosition(int position,int speed, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_go_to_relative_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_go_to_relative_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.RelativePosition,getRelativePosition()+position);
             }
             return null;
         }
@@ -330,7 +427,7 @@ public class Motor extends ConnectedDevice{
          * <li>{@code deceleration}: 0 to 100 (%/s)</li>
          * </ul>
          *
-         * @param position      Absolute target position in degrees.
+         * @param targetPosition      Absolute target position in degrees.
          * @param speed         Motor speed in percent.
          * @param direction     Forced rotation direction. See {@link PathDirection}.
          * @param stall         {@code true} to enable stall detection.
@@ -341,9 +438,9 @@ public class Motor extends ConnectedDevice{
          * @see PathDirection
          * @see StopType
          */
-        public Command goToPositionWithDirection(int position, int speed, PathDirection direction, boolean stall, StopType stopType, int acceleration, int deceleration) {
+        public MotorCommand goToPositionWithDirection(int targetPosition, int speed, PathDirection direction, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_go_direction_to_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("direction",direction.name().toLowerCase()).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(deviceRoot);
+                return new CommandContext("scratch.motor_go_direction_to_position",JsonBuilder.object().add("port",port.name()).add("position",targetPosition).add("speed",speed).add("direction",direction.name().toLowerCase()).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.AbsolutePosition,targetPosition);
             }
             return null;
         }

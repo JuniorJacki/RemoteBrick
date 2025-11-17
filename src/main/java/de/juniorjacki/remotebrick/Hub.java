@@ -106,6 +106,8 @@ public class Hub {
     /** Enables debug logging for native layer and packet parsing. */
     static boolean debugLogging = false;
 
+    private boolean trafficLogging = false;
+
     /**
      * Enables or disables debug logging.
      *
@@ -113,6 +115,10 @@ public class Hub {
      */
     public static void debugLogging(boolean enable) {
         debugLogging = enable;
+    }
+
+    public void printTraffic(boolean enable) {
+        trafficLogging = enable;
     }
 
     /** Global listeners for hub connection events. */
@@ -275,9 +281,14 @@ public class Hub {
          * @param enable {@code true} to listen.
          * @return A {@link Command} to send.
          */
-        private Command listenBroadcast(boolean enable) {
+        public Command listenBroadcast(boolean enable) {
             return new CommandContext("scratch.broadcast_listen", JsonBuilder.object().add("enable",enable)).generateCommand(hub);
         }
+
+        private Command programmModeChange(String mode) {
+            return new CommandContext("program_modechange", JsonBuilder.object().add("mode",mode)).generateCommand(hub);
+        }
+
 
         /**
          * Sends a broadcast signal to the hub.
@@ -324,11 +335,11 @@ public class Hub {
              * @param deceleration  Deceleration (0–100).
              * @return A {@link Command}, or {@code null} if motors invalid.
              */
-            public Command tankDegrees(Motor motorL, Motor motorR, int lSpeed, int rSpeed, int degrees, StopType stopType, int acceleration, int deceleration) {
+            public DualMotorCommand tankDegrees(Motor motorL, Motor motorR, int lSpeed, int rSpeed, int degrees, StopType stopType, int acceleration, int deceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_tank_degrees", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("degrees",degrees).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_tank_degrees", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("degrees",degrees).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateDualMotorCommand(hub,motorL,motorL.getRelativePosition()+degrees,motorR, motorR.getRelativePosition()+degrees, Motor.SubscribedValue.Type.RelativePosition);
             }
 
             /** Starts continuous movement with speed control.
@@ -339,11 +350,11 @@ public class Hub {
              * @param acceleration  Acceleration (0–100).
              * @return A {@link Command}, or {@code null} if motors invalid.
              */
-            public Command startSpeeds(Motor motorL,Motor motorR, int lSpeed,int rSpeed,int acceleration) {
+            public DualMotorCommand startSpeeds(Motor motorL,Motor motorR, int lSpeed,int rSpeed,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_start_speeds", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("acceleration",acceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_start_speeds", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lspeed",lSpeed).add("rspeed",rSpeed).add("acceleration",acceleration)).generateDualMotorCommand(hub,motorL,lSpeed,motorR,rSpeed, Motor.SubscribedValue.Type.Speed);
             }
 
             /** Starts continuous movement with power control.
@@ -354,11 +365,11 @@ public class Hub {
              * @param acceleration  Acceleration (0–100).
              * @return A {@link Command}, or {@code null} if motors invalid.
              */
-            public Command startPowers(Motor motorL,Motor motorR, int lPower,int rPower,int acceleration) {
+            public DualMotorCommand startPowers(Motor motorL,Motor motorR, int lPower,int rPower,int acceleration) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_start_powers", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lpower",lPower).add("rpower",rPower).add("acceleration",acceleration)).generateCommand(hub);
+                return new CommandContext("scratch.move_start_powers", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("lpower",lPower).add("rpower",rPower).add("acceleration",acceleration)).generateDualMotorCommand(hub,motorL,lPower,motorR,rPower, Motor.SubscribedValue.Type.Power);
             }
 
             /** Stops both motors.
@@ -367,11 +378,11 @@ public class Hub {
              * @param stopType      Stop behavior.
              * @return A {@link Command}, or {@code null} if motors invalid.
              */
-            public Command stop(Motor motorL,Motor motorR, StopType stopType) {
+            public DualMotorCommand stop(Motor motorL,Motor motorR, StopType stopType) {
                 if (!(motorL.isFunctional() && motorR.isFunctional())) {
                     return null;
                 }
-                return new CommandContext("scratch.move_stop", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("stop",stopType.ordinal())).generateCommand(hub);
+                return new CommandContext("scratch.move_stop", JsonBuilder.object().add("lmotor",motorL.getPort()).add("rmotor",motorR.getPort()).add("stop",stopType.ordinal())).generateDualMotorCommand(hub,motorL,0,motorR,0, Motor.SubscribedValue.Type.Speed);
             }
 
         }
@@ -640,6 +651,11 @@ public class Hub {
             return future;
         }
 
+        public void printCurrentTaskIDs() {
+            System.out.println("Current task IDs:");
+            System.out.println(taskIDsInUse.toString());
+        }
+
         private void taskResult(String packet) {
             try {
                 String taskID = extractBetween(packet, "\"i\":\"", "\"");
@@ -785,6 +801,7 @@ public class Hub {
                             if (packet != null && packet.length > 0) {
                                 lastDataTimestamp = System.currentTimeMillis();
                                 String packetValue = new String(packet, 0, packet.length - 1,StandardCharsets.UTF_8);
+                                if (trafficLogging) System.out.println(packetValue);
                                 if (packetValue.contains("{\"i\":")) {
                                     taskResult(packetValue);
                                 } else {
@@ -878,7 +895,10 @@ public class Hub {
         this.hubControl = new HubControl(this);
         this.mac = mac;
         connectedHubs.add(this);
-        getControl().listenBroadcast(true).sendAsync();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {}
+        getControl().programmModeChange("play").send();
         new Thread(() -> listeners.forEach(brickListener -> brickListener.newHubConnected(this))).start();
     }
 
@@ -889,6 +909,7 @@ public class Hub {
      * @return 0 on success, error code otherwise.
      */
     public int send(String data) {
+        if (trafficLogging) System.out.println(data);
         return sendNative(handle,data.getBytes(StandardCharsets.UTF_8));
     }
 

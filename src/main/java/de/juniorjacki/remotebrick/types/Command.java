@@ -53,7 +53,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class Command {
     /** The hub instance used for sending and receiving. */
-    private final Hub hub;
+    protected final Hub hub;
     /** JSON payload containing the actual Scratch command and parameters. */
     private final JsonBuilder commandPayload;
 
@@ -81,7 +81,7 @@ public class Command {
      *
      * @return The generated command identifier if transmission was successful, {@code null} otherwise.
      */
-    private String push() {
+    String push() {
         String identifier = hub.getListenerService().newTaskID();
         if (hub.send(JsonBuilder.object().add("i", identifier).addAll(commandPayload).toString()) == 0) {
             return identifier;

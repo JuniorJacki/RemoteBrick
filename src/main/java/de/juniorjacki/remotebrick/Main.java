@@ -63,6 +63,4 @@ public class Main {
         });
         new Thread(() -> {Hub.connect("A8:E2:C1:9C:91:02");}).start();
     }
-
-
 }
