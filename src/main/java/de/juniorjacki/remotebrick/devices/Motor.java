@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Represents a motor connected to a LEGO Inventor Hub.
@@ -30,7 +29,16 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see StopType
  * @see PathDirection
  */
-public class Motor extends ConnectedDevice{
+public class Motor extends ConnectedDevice<Motor.MotorDataType>{
+
+    public enum MotorDataType implements DataType {
+        RelativePosition,
+        AbsolutePosition,
+        Speed,
+        Power
+    }
+
+
 
     public record SubscribedValue(Motor motor, int target, int variance, CompletableFuture<Integer> callback){
         private boolean check(int curPosition) {
@@ -117,6 +125,8 @@ public class Motor extends ConnectedDevice{
         this.power = power;
     }
 
+
+
     /**
      * Current motor speed in percent.
      * <p><strong>Range:</strong> -100 to 100 (percent of max speed)<br>
@@ -196,13 +206,29 @@ public class Motor extends ConnectedDevice{
     }
 
     @Override
-    public void update(SimpleJsonArray array) {
+    public Object parseData(SimpleJsonArray data, MotorDataType type) {
+        return switch (type) {
+            case Speed -> data.optInt(0);
+            case RelativePosition -> data.optInt(1);
+            case AbsolutePosition -> data.optInt(2);
+            case Power -> data.optInt(3);
+        };
+    }
+
+    @Override
+    public List<MotorDataType> update(SimpleJsonArray array) {
+        List<MotorDataType> dataTypes = new ArrayList<>();
         if (array != null) {
-            setSpeed(array.optInt(0));
-            setRelativePosition(array.optInt(1));
-            setPosition(array.optInt(2));
-            setPower(array.optInt(3));
+            int newData = array.optInt(0);
+            if (newData != getSpeed()) {setSpeed(newData); dataTypes.add(MotorDataType.Speed);}
+            newData = array.optInt(1);
+            if (newData != getRelativePosition()) {setRelativePosition(newData); dataTypes.add(MotorDataType.RelativePosition);}
+            newData = array.optInt(2);
+            if (newData != getPosition()) { setPosition(newData); dataTypes.add(MotorDataType.AbsolutePosition);}
+            newData = array.optInt(3);
+            if (newData != getPower()) {setPower(newData); dataTypes.add(MotorDataType.Power);}
         }
+        return dataTypes;
     }
 
     /**

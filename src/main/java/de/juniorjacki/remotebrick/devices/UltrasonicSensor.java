@@ -12,6 +12,9 @@ import de.juniorjacki.remotebrick.types.Port;
 import de.juniorjacki.remotebrick.utils.JsonBuilder;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Represents LEGO Inventor Hub Ultrasonic Sensor.
  * <p>
@@ -35,7 +38,11 @@ import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
  *
  * @see UltrasonicControl
  */
-public class UltrasonicSensor extends ConnectedDevice{
+public class UltrasonicSensor extends ConnectedDevice<UltrasonicSensor.UltrasonicSensorDataType> {
+
+    public enum UltrasonicSensorDataType implements DataType {
+        Distance
+    }
 
     /**
      * Current distance measured by the sensor in <strong>centimeters</strong>.
@@ -71,10 +78,21 @@ public class UltrasonicSensor extends ConnectedDevice{
     }
 
     @Override
-    public void update(SimpleJsonArray data) {
+    public Object parseData(SimpleJsonArray data, UltrasonicSensorDataType type) {
+        return data.optInt(0,201);
+    }
+
+    @Override
+    public List<UltrasonicSensorDataType> update(SimpleJsonArray data) {
+        List<UltrasonicSensorDataType> dataTypes = new ArrayList<>();
         if (data != null) {
-            distance = data.optInt(0,201);
+            int newData = data.optInt(0,201);
+            if (newData !=  getDistance()) {
+                distance = newData;
+                dataTypes.add(UltrasonicSensorDataType.Distance);
+            }
         }
+        return dataTypes;
     }
 
 

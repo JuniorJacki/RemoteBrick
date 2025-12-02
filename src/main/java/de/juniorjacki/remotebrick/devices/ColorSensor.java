@@ -13,6 +13,9 @@ import de.juniorjacki.remotebrick.types.Port;
 import de.juniorjacki.remotebrick.utils.JsonBuilder;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Represents a LEGO Inventor Hub Color Sensor.
  * <p>
@@ -38,8 +41,16 @@ import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
  * @see ColorSensorMode
  * @see ColorControl
  */
-public class ColorSensor extends ConnectedDevice{
+public class ColorSensor extends ConnectedDevice<ColorSensor.ColorSensorDataType> {
 
+
+    public enum ColorSensorDataType implements DataType {
+        Reflection,
+        Color,
+        Red,
+        Green,
+        Blue
+    }
     /**
      * Reflected light intensity in percent.
      * <p>
@@ -177,13 +188,31 @@ public class ColorSensor extends ConnectedDevice{
     }
 
     @Override
-    public void update(SimpleJsonArray data) {
+    public Object parseData(SimpleJsonArray data, ColorSensorDataType type) {
+        return switch (type) {
+            case Reflection -> data.optInt(0,-1);
+            case Color -> data.optInt(1,-1);
+            case Red -> data.optInt(2,-1);
+            case Green -> data.optInt(3,-1);
+            case Blue -> data.optInt(4,-1);
+        };
+    }
+
+    @Override
+    public List<ColorSensorDataType> update(SimpleJsonArray data) {
+        List<ColorSensorDataType> dataTypes = new ArrayList<>();
         if (data != null) {
-            reflection = data.optInt(0,-1);
-            color = data.optInt(1,-1);
-            red = data.optInt(2,-1);
-            green = data.optInt(3,-1);
-            blue = data.optInt(4,-1);
+            int newData = data.optInt(0,-1);
+            if (reflection != newData) {reflection = newData; dataTypes.add(ColorSensorDataType.Reflection);}
+            newData = data.optInt(1,-1);
+            if (color != newData) {color = newData; dataTypes.add(ColorSensorDataType.Color);}
+            newData = data.optInt(2,-1);
+            if (red != newData) {red = newData; dataTypes.add(ColorSensorDataType.Red);}
+            newData = data.optInt(3,-1);
+            if (green != newData) {green = newData; dataTypes.add(ColorSensorDataType.Green);}
+            newData = data.optInt(4,-1);
+            if (blue != newData) {blue = newData; dataTypes.add(ColorSensorDataType.Blue);}
         }
+        return dataTypes;
     }
 }

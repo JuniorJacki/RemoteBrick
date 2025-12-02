@@ -750,7 +750,9 @@ public class Hub {
 
         }
 
+
         private void updateDevices(SimpleJsonArray hubDataArray) {
+            HashMap<Port, List<ConnectedDevice.DataType>> changedData = new HashMap<>();
             for (int i=0; i<6; i++) {
                 SimpleJsonArray deviceData = hubDataArray.getJSONArray(i);
                 int deviceType = deviceData.getInt(0);
@@ -764,7 +766,7 @@ public class Hub {
                         continue;
                     } else {
                         if (connectedDevice.getType() == deviceType) {
-                            connectedDevice.update(deviceData.getJSONArray(1));
+                            changedData.put(devicePort,connectedDevice.update(deviceData.getJSONArray(1)));
                             continue;
                         } else {
                             deviceDisconnected(connectedDevice);
@@ -785,6 +787,29 @@ public class Hub {
                     newDeviceConnected(device);
                 }
             }
+
+            DataSubscriber.simpleDataListeners.stream().filter(simpleDataListener -> simpleDataListener.device().getDeviceRoot().equals(hub) && changedData.containsKey(simpleDataListener.device().getPort()) && changedData.get(simpleDataListener.device().getPort()).contains(simpleDataListener.type())).forEach(simpleDataListener -> {
+                try {
+                    SimpleJsonArray data = hubDataArray.getJSONArray(simpleDataListener.device().getPort().ordinal()).getJSONArray(1);
+                    if (data != null) {
+                        simpleDataListener.newData(simpleDataListener.device().parseData(data, simpleDataListener.type()));
+                    }
+                } catch (Exception ex) {}
+            });
+
+            DataSubscriber.complexDataListeners.stream().filter(cdl -> cdl.keyDevice().getDeviceRoot().equals(hub) && changedData.containsKey(cdl.keyDevice().getPort()) && changedData.get(cdl.keyDevice().getPort()).contains(cdl.keyValueType())).forEach(cdl -> {
+                try {
+                    SimpleJsonArray keydata = hubDataArray.getJSONArray(cdl.keyDevice().getPort().ordinal()).getJSONArray(1);
+                    if (keydata != null) {
+                        SimpleJsonArray value = hubDataArray.getJSONArray(cdl.valueDevice().getPort().ordinal()).getJSONArray(1);
+                        if (value != null) {
+                            cdl.newData(cdl.keyDevice().parseData(keydata,cdl.keyValueType()),cdl.valueDevice().parseData(value,cdl.valueType()));
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
         }
 
 

@@ -9,8 +9,17 @@ import de.juniorjacki.remotebrick.Hub;
 import de.juniorjacki.remotebrick.types.Port;
 import de.juniorjacki.remotebrick.utils.SimpleJsonArray;
 
+import java.util.List;
 
-public abstract class ConnectedDevice {
+
+public abstract class ConnectedDevice<E extends Enum<E> & ConnectedDevice.DataType> {
+
+
+    public interface DataType {}
+
+    public Object parseData(SimpleJsonArray data,E type) {
+        return null;
+    };
 
     /**
      * Hub the Device is connected to
@@ -36,6 +45,10 @@ public abstract class ConnectedDevice {
         return port;
     }
 
+    public Hub getDeviceRoot() {
+        return deviceRoot;
+    }
+
     /**
      * Device Type
      */
@@ -51,7 +64,9 @@ public abstract class ConnectedDevice {
      * Updates Dynamic Device Values
      * @param data Device Values
      */
-    public void update(SimpleJsonArray data) {}
+    public List<E> update(SimpleJsonArray data) {
+        return null;
+    }
 
     /**
      * @return True if the Device is still connected to the Hub, else False
