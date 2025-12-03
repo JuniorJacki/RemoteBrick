@@ -432,7 +432,7 @@ public class Motor extends ConnectedDevice<Motor.MotorDataType>{
          */
         public MotorCommand goToRelativePosition(int position,int speed, boolean stall, StopType stopType, int acceleration, int deceleration) {
             if (isFunctional()) {
-                return new CommandContext("scratch.motor_go_to_relative_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.RelativePosition,getRelativePosition()+position);
+                return new CommandContext("scratch.motor_go_to_relative_position",JsonBuilder.object().add("port",port.name()).add("position",position).add("speed",speed).add("stall",stall).add("stop",stopType.ordinal()).add("acceleration",acceleration).add("deceleration",deceleration)).generateMotorCommand(deviceRoot,motorref, SubscribedValue.Type.RelativePosition,position);
             }
             return null;
         }
