@@ -570,6 +570,7 @@ public class Hub {
 
         public interface HubTelemetryListener {
             void linkReport(int upLinkRequestPerReportTime,int downLinkResponsePerReportTime);
+            void batteryReport(int newPercentage);
         }
 
         private List<HubTelemetryListener> telemetryListeners = new ArrayList<>();
@@ -593,6 +594,10 @@ public class Hub {
         /** @param listener EventListener to remove. */
         public void removeListener(HubEventListener listener) {
             eventListeners.remove(listener);
+        }
+
+        private void newBatteryReport(int newPercentage) {
+            telemetryListeners.forEach(hubTelemetryListener -> new Thread(() -> hubTelemetryListener.batteryReport(newPercentage)).start());
         }
 
         private void newLinkReportData(int upLinkRequests,int downLinkRequests) {
@@ -761,7 +766,11 @@ public class Hub {
 
         private void updatePowerData(SimpleJsonArray hubDataArray) {
             hub.batteryVoltage.set(hubDataArray.getDouble(0));
-            hub.batteryPercentage.set(hubDataArray.getInt(1));
+            if (batteryPercentage.get() != hubDataArray.getInt(1)) {
+                hub.batteryPercentage.set(hubDataArray.getInt(1));
+                newBatteryReport(hub.batteryPercentage.get());
+            }
+
             hub.pluggedIn.set(hubDataArray.getBoolean(2));
         }
 
