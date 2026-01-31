@@ -28,6 +28,8 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -66,6 +68,8 @@ import java.util.concurrent.atomic.AtomicReference;
  * @see ConnectedDevice
  */
 public class Hub {
+
+
 
     /** Global list of all active hub instances. */
     static List<Hub> connectedHubs = new ArrayList<>();
@@ -108,6 +112,9 @@ public class Hub {
 
     private boolean trafficLogging = false;
 
+    /** Time duration between Telemetry Reports*/
+    private long telemetryReportTime = 1000;
+
     /**
      * Enables or disables debug logging.
      *
@@ -120,6 +127,17 @@ public class Hub {
     public void printTraffic(boolean enable) {
         trafficLogging = enable;
     }
+
+    /** Time duration between Telemetry Reports*/
+    public long getTelemetryReportTime() {
+        return telemetryReportTime;
+    }
+
+    /** Time duration between Telemetry Reports*/
+    public void setTelemetryReportTime(long telemetryReportTime) {
+        this.telemetryReportTime = telemetryReportTime;
+    }
+
 
     /** Global listeners for hub connection events. */
     private static List<BrickListener> listeners = new ArrayList<BrickListener>();
@@ -535,6 +553,7 @@ public class Hub {
         private Listener(Hub hub) {
             this.hub = hub;
             startService();
+            startTelemetryService();
         }
 
         /** Listener interface for hub events. */
@@ -548,32 +567,52 @@ public class Hub {
             void receivedBroadcastMessage(long hash,String message);
         }
 
-        private List<HubEventListener> listeners = new ArrayList<HubEventListener>();
 
-        /** @param listener Listener to add. */
-        public void addListener(HubEventListener listener) {
-            listeners.add(listener);
+        public interface HubTelemetryListener {
+            void linkReport(int upLinkRequestPerReportTime,int downLinkResponsePerReportTime);
         }
 
-        /** @param listener Listener to remove. */
+        private List<HubTelemetryListener> telemetryListeners = new ArrayList<>();
+        private List<HubEventListener> eventListeners = new ArrayList<HubEventListener>();
+
+        /** @param listener TelemetryListener to add. */
+        public void addListener(HubTelemetryListener listener) {
+            telemetryListeners.add(listener);
+        }
+
+        /** @param listener TelemetryListener to remove. */
+        public void removeListener(HubTelemetryListener listener) {
+            telemetryListeners.remove(listener);
+        }
+
+        /** @param listener EventListener to add. */
+        public void addListener(HubEventListener listener) {
+            eventListeners.add(listener);
+        }
+
+        /** @param listener EventListener to remove. */
         public void removeListener(HubEventListener listener) {
-            listeners.remove(listener);
+            eventListeners.remove(listener);
+        }
+
+        private void newLinkReportData(int upLinkRequests,int downLinkRequests) {
+            telemetryListeners.forEach(hubTelemetryListener -> new Thread(() -> hubTelemetryListener.linkReport(upLinkRequests,downLinkRequests)).start());
         }
 
         private void newDeviceConnected(ConnectedDevice device) {
-            listeners.forEach(listener -> new Thread(() -> listener.newDeviceConnected(device)).start());
+            eventListeners.forEach(listener -> new Thread(() -> listener.newDeviceConnected(device)).start());
         }
 
         private void deviceDisconnected(ConnectedDevice device) {
-            listeners.forEach(listener -> new Thread(() -> listener.deviceDisconnected(device)).start());
+            eventListeners.forEach(listener -> new Thread(() -> listener.deviceDisconnected(device)).start());
         }
 
         private void hubWasKnocked() {
-            listeners.forEach(listener -> new Thread(listener::hubWasKnocked).start());
+            eventListeners.forEach(listener -> new Thread(listener::hubWasKnocked).start());
         }
 
         private void hubChangedState(HubState newState) {
-            listeners.forEach(listener -> new Thread(() -> listener.hubChangedState(newState)).start());
+            eventListeners.forEach(listener -> new Thread(() -> listener.hubChangedState(newState)).start());
         }
 
         private void hubButtonWasPressed(SimpleJsonArray data) {
@@ -589,9 +628,9 @@ public class Hub {
                     if (hButton != null) {
                         int duration = data.optInt(1);
                         if (duration > 0) {
-                            listeners.forEach(listener -> new Thread(() -> listener.hubButtonReleased(hButton,duration)).start());
+                            eventListeners.forEach(listener -> new Thread(() -> listener.hubButtonReleased(hButton,duration)).start());
                         } else {
-                            listeners.forEach(listener -> new Thread(() -> listener.hubButtonPressed(hButton)).start());
+                            eventListeners.forEach(listener -> new Thread(() -> listener.hubButtonPressed(hButton)).start());
                         }
                     }
                 } catch (Exception ex) {
@@ -605,7 +644,7 @@ public class Hub {
                 try {
                     long hash = data.optLong(0);
                     String message = data.optString(1);
-                    listeners.forEach(listener -> new Thread(() -> listener.receivedBroadcastMessage(hash,message)).start());
+                    eventListeners.forEach(listener -> new Thread(() -> listener.receivedBroadcastMessage(hash,message)).start());
                 } catch (Exception ignored) {}
             }).start();
         }
@@ -788,16 +827,16 @@ public class Hub {
                 }
             }
 
-            DataSubscriber.simpleDataListeners.stream().filter(simpleDataListener -> simpleDataListener.device().getDeviceRoot().equals(hub) && changedData.containsKey(simpleDataListener.device().getPort()) && changedData.get(simpleDataListener.device().getPort()).contains(simpleDataListener.type())).forEach(simpleDataListener -> {
+            DataSubscriber.simpleDataListeners.stream().filter(simpleDataListener -> simpleDataListener.device().getDeviceRoot().equals(hub) && changedData.containsKey(simpleDataListener.device().getPort()) && changedData.get(simpleDataListener.device().getPort()).contains(simpleDataListener.type())).sorted(Comparator.comparingInt(DataSubscriber.SimpleDataListener::priority)).forEach(simpleDataListener -> {
                 try {
                     SimpleJsonArray data = hubDataArray.getJSONArray(simpleDataListener.device().getPort().ordinal()).getJSONArray(1);
                     if (data != null) {
                         simpleDataListener.newData(simpleDataListener.device().parseData(data, simpleDataListener.type()));
                     }
-                } catch (Exception ex) {}
+                } catch (Exception ignored) {}
             });
 
-            DataSubscriber.complexDataListeners.stream().filter(cdl -> cdl.keyDevice().getDeviceRoot().equals(hub) && changedData.containsKey(cdl.keyDevice().getPort()) && changedData.get(cdl.keyDevice().getPort()).contains(cdl.keyValueType())).forEach(cdl -> {
+            DataSubscriber.complexDataListeners.stream().filter(cdl -> cdl.keyDevice().getDeviceRoot().equals(hub) && changedData.containsKey(cdl.keyDevice().getPort()) && changedData.get(cdl.keyDevice().getPort()).contains(cdl.keyValueType())).sorted(Comparator.comparingInt(DataSubscriber.ComplexDataListener::priority)).forEach(cdl -> {
                 try {
                     SimpleJsonArray keydata = hubDataArray.getJSONArray(cdl.keyDevice().getPort().ordinal()).getJSONArray(1);
                     if (keydata != null) {
@@ -806,10 +845,32 @@ public class Hub {
                             cdl.newData(cdl.keyDevice().parseData(keydata,cdl.keyValueType()),cdl.valueDevice().parseData(value,cdl.valueType()));
                         }
                     }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
+                } catch (Exception ignored) {}
             });
+        }
+
+
+        AtomicInteger upLinkCounter = new AtomicInteger(0);
+        AtomicInteger downLinkCounter = new AtomicInteger(0);
+
+        Thread telemetryService = null;
+
+        private void startTelemetryService() {
+            telemetryService = new Thread(() -> {
+                while (telemetryReportTime > 0) {
+                    try {
+                        Thread.sleep(telemetryReportTime);
+                    } catch (Exception ignored) {}
+                    newLinkReportData(upLinkCounter.get(),downLinkCounter.get());
+                    upLinkCounter.set(0);
+                    downLinkCounter.set(0);
+                }
+            }, "Remotebrick TelemetryService " + hub.getMacAddress());
+            telemetryService.start();
+        }
+
+        private void stopTelemetryService() {
+            telemetryService.interrupt();
         }
 
 
@@ -825,6 +886,7 @@ public class Hub {
                             packet = raw.readPacket();
                             if (packet != null && packet.length > 0) {
                                 lastDataTimestamp = System.currentTimeMillis();
+                                downLinkCounter.incrementAndGet();
                                 String packetValue = new String(packet, 0, packet.length - 1,StandardCharsets.UTF_8);
                                 if (trafficLogging) System.out.println(packetValue);
                                 if (packetValue.contains("{\"i\":")) {
@@ -935,6 +997,7 @@ public class Hub {
      */
     public int send(String data) {
         if (trafficLogging) System.out.println(data);
+        hubListener.upLinkCounter.incrementAndGet();
         return sendNative(handle,data.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -944,6 +1007,7 @@ public class Hub {
     }
 
     private void disconnect(boolean removeFromList) {
+        hubListener.stopTelemetryService();
         hubListener.stopService();
         if (handle != null) disconnectNative(handle);
         if (removeFromList) connectedHubs.remove(this);
