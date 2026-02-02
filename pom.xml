@@ -6,7 +6,7 @@
 
     <groupId>de.juniorjacki</groupId>
     <artifactId>RemoteBrick</artifactId>
-    <version>1.5.1</version>
+    <version>1.5.2</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

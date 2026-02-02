@@ -558,19 +558,21 @@ public class Hub {
 
         /** Listener interface for hub events. */
         public interface HubEventListener {
-            void newDeviceConnected(ConnectedDevice device);
-            void deviceDisconnected(ConnectedDevice device);
-            void hubWasKnocked();
-            void hubChangedState(HubState newState);
-            void hubButtonPressed(HubButton button);
-            void hubButtonReleased(HubButton button,long duration);
-            void receivedBroadcastMessage(long hash,String message);
+            default void newDeviceConnected(ConnectedDevice device) {};
+            default void deviceDisconnected(ConnectedDevice device) {};
+            default void hubWasKnocked() {};
+            default void hubChangedState(HubState newState) {};
+            default void hubButtonPressed(HubButton button) {};
+            default void hubButtonReleased(HubButton button,long duration) {};
+            default void receivedBroadcastMessage(long hash,String message) {};
         }
 
 
         public interface HubTelemetryListener {
-            void linkReport(int upLinkRequestPerReportTime,int downLinkResponsePerReportTime);
-            void batteryReport(int newPercentage);
+            default void linkReport(int upLinkRequestPerReportTime,int downLinkResponsePerReportTime) {};
+            default void batteryReport(int newPercentage) {};
+            default void batteryPowerState(boolean pluggedIn) {};
+            default void batteryVoltage(double newVoltage) {};
         }
 
         private List<HubTelemetryListener> telemetryListeners = new ArrayList<>();
@@ -598,6 +600,14 @@ public class Hub {
 
         private void newBatteryReport(int newPercentage) {
             telemetryListeners.forEach(hubTelemetryListener -> new Thread(() -> hubTelemetryListener.batteryReport(newPercentage)).start());
+        }
+
+        private void newBatteryPowerState(boolean pluggedIn) {
+            telemetryListeners.forEach(hubTelemetryListener -> new Thread(() -> hubTelemetryListener.batteryPowerState(pluggedIn)).start());
+        }
+
+        private void newBatteryVoltage(double newVoltage) {
+            telemetryListeners.forEach(hubTelemetryListener -> new Thread(() -> hubTelemetryListener.batteryVoltage(newVoltage)).start());
         }
 
         private void newLinkReportData(int upLinkRequests,int downLinkRequests) {
@@ -765,13 +775,18 @@ public class Hub {
         }
 
         private void updatePowerData(SimpleJsonArray hubDataArray) {
-            hub.batteryVoltage.set(hubDataArray.getDouble(0));
+            if (batteryVoltage.get() != hubDataArray.getDouble(0)) {
+                hub.batteryVoltage.set(hubDataArray.getDouble(0));
+                newBatteryVoltage(hub.batteryVoltage.get());
+            }
             if (batteryPercentage.get() != hubDataArray.getInt(1)) {
                 hub.batteryPercentage.set(hubDataArray.getInt(1));
                 newBatteryReport(hub.batteryPercentage.get());
             }
-
-            hub.pluggedIn.set(hubDataArray.getBoolean(2));
+            if (pluggedIn.get() != hubDataArray.getBoolean(2)) {
+                hub.pluggedIn.set(hubDataArray.getBoolean(2));
+                newBatteryPowerState(hub.pluggedIn.get());
+            }
         }
 
         private void updateHubData(SimpleJsonArray hubDataArray) {
