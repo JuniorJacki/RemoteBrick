@@ -79,6 +79,14 @@ Go to: [Releases](https://github.com/juniorjacki/RemoteBrick/releases/latest)
 
 Download: RemoteBrick-#.#.#.jar
 
+### Or import via Maven Central
+```xml
+<dependency>
+    <groupId>de.juniorjacki</groupId>
+    <artifactId>RemoteBrick</artifactId>
+    <version>1.5.2</version>
+</dependency>
+```
 ---
 
 ### 2. Add to Your Project
