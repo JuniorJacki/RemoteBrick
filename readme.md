@@ -7,6 +7,9 @@
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
 [![Javadoc](https://img.shields.io/badge/JavaDoc-Online-green)](https://juniorjacki.github.io/RemoteBrick/)
+[![Wiki](https://img.shields.io/badge/Wiki-%E2%9C%93-brightgreen)](https://github.com/JuniorJacki/RemoteBrick/wiki)
+
+
 
 > **Control your LEGO® Inventor Hubs (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
 > **No LEGO software. No Python. No limits. With Official Firmware on the HUB**
@@ -96,6 +99,7 @@ Download: RemoteBrick-#.#.#.jar
 3. Find `LEGO Hub` → **Pair**
 4. Copy the **MAC address** → e.g., `AA:BB:CC:DD:EE:FF`
 
+### 4. [![Connect via RemoteBrick](https://img.shields.io/badge/Connect%20via%20RemoteBrick-00b140?style=for-the-badge&logo=link&logoColor=white)](https://github.com/JuniorJacki/RemoteBrick/wiki/How-to-Connect-to-a-Hub)
 ---
 
 ## Code Examples
