@@ -6,6 +6,7 @@
 [![Bluetooth Classic](https://img.shields.io/badge/Bluetooth-Classic%20(SPP)-blue?logo=bluetooth)](https://en.wikipedia.org/wiki/Bluetooth#Classic_Bluetooth)
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
+[![Javadoc](https://img.shields.io/badge/JavaDoc-Online-green)](https://juniorjacki.github.io/RemoteBrick/javadoc/)
 
 > **Control your LEGO® Inventor Hubs (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
 > **No LEGO software. No Python. No limits. With Official Firmware on the HUB**
