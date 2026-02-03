@@ -1,10 +1,6 @@
 name: Deploy Javadoc
 
-on:
-  push:
-    branches:
-      - main
-
+on: workflow_dispatch
 jobs:
   publish:
     runs-on: ubuntu-latest
