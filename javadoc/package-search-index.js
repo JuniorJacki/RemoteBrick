@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"de.juniorjacki.remotebrick"},{"l":"de.juniorjacki.remotebrick.devices"},{"l":"de.juniorjacki.remotebrick.types"},{"l":"de.juniorjacki.remotebrick.utils"}];updateSearchResults();
