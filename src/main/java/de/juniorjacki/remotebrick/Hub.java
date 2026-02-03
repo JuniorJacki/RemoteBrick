@@ -28,8 +28,6 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -46,7 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * <p><strong>Key Features:</strong></p>
  * <ul>
  *   <li>Automatic device detection (Motor, ColorSensor, UltrasonicSensor)</li>
- *   <li>Real-time sensor & hub state updates</li>
+ *   <li>Real-time sensor and hub state updates</li>
  *   <li>Display control with {@link Image}, {@link Animation}, text</li>
  *   <li>Sound playback, motor control, tank steering</li>
  *   <li>Event system via {@link BrickListener} and {@link Listener.HubEventListener}</li>

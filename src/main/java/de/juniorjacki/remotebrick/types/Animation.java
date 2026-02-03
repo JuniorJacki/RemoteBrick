@@ -78,14 +78,12 @@ public class Animation {
 
     /**
      * Converts the animation to a {@link JsonBuilder} object.
-     * <p>
      * The resulting JSON has the structure:
      * <pre>
      * {
      *   "frames": ["frame1", "frame2", ...]
      * }
      * </pre>
-     * </p>
      *
      * @return A {@link JsonBuilder} containing the animation data.
      */

@@ -129,12 +129,10 @@ public class Image {
 
     /**
      * Converts the image to a {@link JsonBuilder} for hub transmission.
-     * <p>
      * Output format:
      * <pre>
      * {"image": "12345:00000:54321:00000:12345"}
      * </pre>
-     * </p>
      *
      * @return A {@link JsonBuilder} with the image string.
      */

@@ -98,10 +98,7 @@ public class UltrasonicSensor extends ConnectedDevice<UltrasonicSensor.Ultrasoni
 
     /**
      * Provides control over the ultrasonic sensor's 4 RGB LEDs.
-     * <p>
      * Each LED can be set independently with brightness from 0 (off) to 100 (full).
-     * </p>
-     * <p>
      * LED positions (viewed from front):
      * <ul>
      *   <li>{@code l1} – Top LED</li>
@@ -109,7 +106,7 @@ public class UltrasonicSensor extends ConnectedDevice<UltrasonicSensor.Ultrasoni
      *   <li>{@code l3} – Left LED</li>
      *   <li>{@code l4} – Right LED</li>
      * </ul>
-     * </p>
+     *
      *
      * @see Command
      * @see CommandContext

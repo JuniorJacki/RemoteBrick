@@ -259,7 +259,7 @@ public class Motor extends ConnectedDevice<Motor.MotorDataType>{
          * <ul>
          * <li>{@code speed}: -100 to 100 (percent; positive = forward, negative = backward)</li>
          * <li>{@code degrees}: Integer value (no strict max; limited by encoder precision ~0.1°)</li>
-         * <li>{@code stall}: {@code true} to enable stall detection (motor stops if stalled, e.g., high torque & zero speed)</li>
+         * <li>{@code stall}: {@code true} to enable stall detection (motor stops if stalled, e.g., high torque and zero speed)</li>
          * <li>{@code stopType}: Type of stop action after reaching the position (e.g., COAST, BRAKE, HOLD). See {@link StopType}.</li>
          * <li>{@code acceleration}: 0 to 100 (percent of max acceleration per second; 0 = instant)</li>
          * <li>{@code deceleration}: 0 to 100 (percent of max deceleration per second; 0 = instant)</li>
