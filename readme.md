@@ -6,7 +6,7 @@
 [![Bluetooth Classic](https://img.shields.io/badge/Bluetooth-Classic%20(SPP)-blue?logo=bluetooth)](https://en.wikipedia.org/wiki/Bluetooth#Classic_Bluetooth)
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
-[![Javadoc](https://img.shields.io/badge/JavaDoc-Online-green)](https://juniorjacki.github.io/RemoteBrick/)
+[![javadoc](https://javadoc.io/badge2/de.juniorjacki/RemoteBrick/javadoc.svg)](https://javadoc.io/doc/de.juniorjacki/RemoteBrick)
 [![Wiki](https://img.shields.io/badge/Wiki-%E2%9C%93-brightgreen)](https://github.com/JuniorJacki/RemoteBrick/wiki)
 
 
