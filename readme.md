@@ -68,9 +68,21 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 
 ---
 
-## Quick Start in 3 Steps
+## Quick Start
 
-**No need to clone or build!**  
+### Import via Maven Central / Gradle
+```xml
+<dependency>
+    <groupId>de.juniorjacki</groupId>
+    <artifactId>RemoteBrick</artifactId>
+    <version>1.5.2</version>
+</dependency>
+```
+```xml
+implementation("de.juniorjacki:RemoteBrick:1.5.2")
+```
+
+## or
 Just download the latest **release JAR** from GitHub and add it to your project.
 
 ### 1. Download the Latest Release
@@ -79,14 +91,7 @@ Go to: [Releases](https://github.com/juniorjacki/RemoteBrick/releases/latest)
 
 Download: RemoteBrick-#.#.#.jar
 
-### Or import via Maven Central
-```xml
-<dependency>
-    <groupId>de.juniorjacki</groupId>
-    <artifactId>RemoteBrick</artifactId>
-    <version>1.5.2</version>
-</dependency>
-```
+
 ---
 
 ### 2. Add to Your Project
