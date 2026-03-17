@@ -6,7 +6,10 @@
 [![Bluetooth Classic](https://img.shields.io/badge/Bluetooth-Classic%20(SPP)-blue?logo=bluetooth)](https://en.wikipedia.org/wiki/Bluetooth#Classic_Bluetooth)
 [![Plug & Play](https://img.shields.io/badge/Setup-Plug%20&%20Play-success)](https://en.wikipedia.org/wiki/Plug_and_play)
 [![GitHub stars](https://img.shields.io/github/stars/juniorjacki/RemoteBrick?style=social)](https://github.com/juniorjacki/RemoteBrick)
-[![Javadoc](https://img.shields.io/badge/JavaDoc-Online-green)](https://juniorjacki.github.io/RemoteBrick/)
+[![javadoc](https://javadoc.io/badge2/de.juniorjacki/RemoteBrick/javadoc.svg)](https://javadoc.io/doc/de.juniorjacki/RemoteBrick)
+[![Wiki](https://img.shields.io/badge/Wiki-%E2%9C%93-brightgreen)](https://github.com/JuniorJacki/RemoteBrick/wiki)
+
+
 
 > **Control your LEGO® Inventor Hubs (51515) from Java — like the official LEGO app, but **100× more powerful**.**  
 > **No LEGO software. No Python. No limits. With Official Firmware on the HUB**
@@ -65,9 +68,21 @@ It communicates **directly via Bluetooth Classic (SPP)** — giving you **full c
 
 ---
 
-## Quick Start in 3 Steps
+## Quick Start
 
-**No need to clone or build!**  
+### Import via Maven Central / Gradle
+```xml
+<dependency>
+    <groupId>de.juniorjacki</groupId>
+    <artifactId>RemoteBrick</artifactId>
+    <version>1.5.2</version>
+</dependency>
+```
+```xml
+implementation("de.juniorjacki:RemoteBrick:1.5.2")
+```
+
+## or
 Just download the latest **release JAR** from GitHub and add it to your project.
 
 ### 1. Download the Latest Release
@@ -75,6 +90,7 @@ Just download the latest **release JAR** from GitHub and add it to your project.
 Go to: [Releases](https://github.com/juniorjacki/RemoteBrick/releases/latest)
 
 Download: RemoteBrick-#.#.#.jar
+
 
 ---
 
@@ -96,6 +112,7 @@ Download: RemoteBrick-#.#.#.jar
 3. Find `LEGO Hub` → **Pair**
 4. Copy the **MAC address** → e.g., `AA:BB:CC:DD:EE:FF`
 
+### 4. [![Connect via RemoteBrick](https://img.shields.io/badge/Connect%20via%20RemoteBrick-00b140?style=for-the-badge&logo=link&logoColor=white)](https://github.com/JuniorJacki/RemoteBrick/wiki/How-to-Connect-to-a-Hub)
 ---
 
 ## Code Examples
