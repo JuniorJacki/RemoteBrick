@@ -6,7 +6,33 @@
 
     <groupId>de.juniorjacki</groupId>
     <artifactId>RemoteBrick</artifactId>
-    <version>1.5.2</version>
+    <version>1.5.3</version>
+    <name>RemoteBrick</name>
+    <description>A Java API for LEGO® Inventor Hub (51515) control via Bluetooth Classic on Windows.</description>
+    <url>https://github.com/JuniorJacki/RemoteBrick</url>
+
+    <licenses>
+        <license>
+            <name>Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)</name>
+            <url>https://creativecommons.org/licenses/by-nc/4.0/</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>JuniorJacki</name>
+            <email>me@juniorjacki.de</email>
+            <url>https://juniorjacki.de</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git://github.com/JuniorJacki/RemoteBrick.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/JuniorJacki/RemoteBrick.git</developerConnection>
+        <url>https://github.com/JuniorJacki/RemoteBrick</url>
+        <tag>HEAD</tag>  <!-- optional -->
+    </scm>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -23,5 +49,68 @@
                 </includes>
             </resource>
         </resources>
+
+        <plugins>
+            <!-- Sources + Javadoc erzeugen (Pflicht für Central) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.3.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals><goal>jar-no-fork</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.7.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals><goal>jar</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Automatisch signieren mit GPG -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>3.2.7</version>  <!-- oder neuer -->
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals><goal>sign</goal></goals>
+                    </execution>
+                </executions>
+
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.3.0</version>  <!-- check aktuellste auf https://central.sonatype.org/publish/maven/ -->
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>central</id>
+            <url>https://central.sonatype.com/api/v1/publisher/</url>
+        </snapshotRepository>
+        <repository>
+            <id>central</id>
+            <url>https://central.sonatype.com/api/v1/publisher/</url>
+        </repository>
+    </distributionManagement>
 </project>

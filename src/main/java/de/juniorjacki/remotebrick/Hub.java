@@ -144,8 +144,8 @@ public class Hub {
      * Interface for global hub connection events.
      */
     public interface BrickListener {
-        void newHubConnected(Hub hub);
-        void hubDisconnected(Hub hub);
+        default void newHubConnected(Hub hub){}
+        default void hubDisconnected(Hub hub){}
     }
 
     /**
@@ -229,7 +229,7 @@ public class Hub {
     private final AtomicInteger yaw = new AtomicInteger(0);
     private final AtomicInteger pitch = new AtomicInteger(0);
     private final AtomicInteger roll = new AtomicInteger(0);
-    private final AtomicLong programmTime = new AtomicLong(0);
+    private final AtomicLong programTime = new AtomicLong(0);
     private final AtomicReference<HubState> state = new AtomicReference<>(HubState.Laying);
     private final AtomicReference<String> unknownData = new AtomicReference<>("");
     private final Map<Port, ConnectedDevice> connectedDevices = new ConcurrentHashMap<>();
@@ -250,7 +250,7 @@ public class Hub {
     public int getRoll() { return roll.get(); }
 
     /** @return Runtime of current program in milliseconds. */
-    public long getProgrammTime() { return programmTime.get(); }
+    public long getProgramTime() { return programTime.get(); }
 
     /** @return Raw unknown data field from hub data Index 10. */
     public String getUnknownData() { return unknownData.get(); }
@@ -301,7 +301,7 @@ public class Hub {
             return new CommandContext("scratch.broadcast_listen", JsonBuilder.object().add("enable",enable)).generateCommand(hub);
         }
 
-        private Command programmModeChange(String mode) {
+        private Command programModeChange(String mode) {
             return new CommandContext("program_modechange", JsonBuilder.object().add("mode",mode)).generateCommand(hub);
         }
 
@@ -565,12 +565,17 @@ public class Hub {
             default void receivedBroadcastMessage(long hash,String message) {};
         }
 
-
         public interface HubTelemetryListener {
             default void linkReport(int upLinkRequestPerReportTime,int downLinkResponsePerReportTime) {};
             default void batteryReport(int newPercentage) {};
             default void batteryPowerState(boolean pluggedIn) {};
             default void batteryVoltage(double newVoltage) {};
+
+            default void newAccelerationValues(int x,int y,int z) {};
+            default void newRotationValues(int x,int y,int z) {};
+            default void newOrientationValues(int yaw,int pitch,int roll) {};
+            default void newUnknownValue(String unknownValue) {};
+            default void newProgramDurationValue(long duration) {};
         }
 
         private List<HubTelemetryListener> telemetryListeners = new ArrayList<>();
@@ -594,6 +599,26 @@ public class Hub {
         /** @param listener EventListener to remove. */
         public void removeListener(HubEventListener listener) {
             eventListeners.remove(listener);
+        }
+
+        private void newAccelerationValues(int x,int y,int z) {
+            telemetryListeners.forEach(listener -> new Thread(() -> listener.newAccelerationValues(x,y,z)).start());
+        }
+
+        private void newRotationValues(int x,int y,int z) {
+            telemetryListeners.forEach(listener -> new Thread(() -> listener.newRotationValues(x,y,z)).start());
+        }
+
+        private void newOrientationValues(int yaw,int pitch,int roll) {
+            telemetryListeners.forEach(listener -> new Thread(() -> listener.newOrientationValues(yaw,pitch,roll)).start());
+        }
+
+        private void newUnknownValue(String unknownValue) {
+            telemetryListeners.forEach(listener -> new Thread(() -> listener.newUnknownValue(unknownValue)).start());
+        }
+
+        private void newProgramDurationValue(long duration) {
+            telemetryListeners.forEach(listener -> new Thread(() -> listener.newProgramDurationValue(duration)).start());
         }
 
         private void newBatteryReport(int newPercentage) {
@@ -744,8 +769,8 @@ public class Hub {
                         }
                         case 14 -> {
                             HubState state = HubState.values()[parsedData.optInt("p")];
-                            hubChangedState(state);
                             hub.state.set(state);
+                            hubChangedState(state);
                         }
                         case 15 -> {
                             SimpleJsonArray hubDataArray = parsedData.getJSONArray("p");
@@ -788,27 +813,63 @@ public class Hub {
         }
 
         private void updateHubData(SimpleJsonArray hubDataArray) {
+            boolean newValue = false;
             SimpleJsonArray acceleration = hubDataArray.getJSONArray(7);
-            hub.accelerationX.set(acceleration.getInt(0));
-            hub.accelerationY.set(acceleration.getInt(1));
-            hub.accelerationZ.set(acceleration.getInt(2));
+            if (hub.getAccelerationX() != acceleration.getInt(0)) {
+                hub.accelerationX.set(acceleration.getInt(0));
+                newValue = true;
+            }
+            if (hub.getAccelerationY() != acceleration.getInt(1)) {
+                hub.accelerationY.set(acceleration.getInt(1));
+                newValue = true;
+            }
+            if (hub.getAccelerationZ() != acceleration.getInt(2)) {
+                hub.accelerationZ.set(acceleration.getInt(2));
+                newValue = true;
+            }
+            if (newValue) {newAccelerationValues(hub.getAccelerationX(), hub.getAccelerationY(), hub.getAccelerationZ()); newValue = false;}
 
             SimpleJsonArray rotation = hubDataArray.getJSONArray(8);
-            hub.rotationX.set(rotation.getInt(0));
-            hub.rotationY.set(rotation.getInt(1));
-            hub.rotationZ.set(rotation.getInt(2));
+            if (hub.getRotationX() != rotation.getInt(0)) {
+                hub.rotationX.set(rotation.getInt(0));
+                newValue = true;
+            }
+            if (hub.getRotationY() != rotation.getInt(1)) {
+                hub.rotationY.set(rotation.getInt(1));
+                newValue = true;
+            }
+            if (hub.getRotationZ() != rotation.getInt(2)) {
+                hub.rotationZ.set(rotation.getInt(2));
+                newValue = true;
+            }
+            if (newValue) {newRotationValues(hub.getRotationX(), hub.getRotationY(), hub.getRotationZ()); newValue = false;}
 
             SimpleJsonArray orientation = hubDataArray.optJSONArray(9);
             if (orientation != null) {
-                hub.yaw.set(orientation.getInt(0));
-                hub.pitch.set(orientation.getInt(1));
-                hub.roll.set(orientation.getInt(2));
+                if (hub.getYaw() != orientation.getInt(0)) {
+                    hub.yaw.set(orientation.getInt(0));
+                    newValue = true;
+                }
+                if (hub.getPitch() != orientation.getInt(1)) {
+                    hub.pitch.set(orientation.getInt(1));
+                    newValue = true;
+                }
+                if (hub.getRoll() != orientation.getInt(2)) {
+                    hub.roll.set(orientation.getInt(2));
+                    newValue = true;
+                }
+                if (newValue) {newOrientationValues(hub.getYaw(), hub.getPitch(), hub.getRoll());}
             }
 
-            hub.unknownData.set(hubDataArray.optString(10));
+            if (!hub.getUnknownData().equals(hubDataArray.getString(10))) {
+                hub.unknownData.set(hubDataArray.optString(10));
+                newUnknownValue(hub.unknownData.get());
+            }
 
-            hub.programmTime.set(hubDataArray.optLong(11));
-
+            if (hub.getProgramTime() != hubDataArray.optLong(11)) {
+                hub.programTime.set(hubDataArray.optLong(11));
+                newProgramDurationValue(hub.programTime.get());
+            }
         }
 
 
@@ -1007,7 +1068,7 @@ public class Hub {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {}
-        getControl().programmModeChange("play").send();
+        getControl().programModeChange("play").send();
         new Thread(() -> listeners.forEach(brickListener -> brickListener.newHubConnected(this))).start();
     }
 
