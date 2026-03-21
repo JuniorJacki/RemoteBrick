@@ -6,7 +6,7 @@
 
     <groupId>de.juniorjacki</groupId>
     <artifactId>RemoteBrick</artifactId>
-    <version>1.5.3</version>
+    <version>1.5.4</version>
     <name>RemoteBrick</name>
     <description>A Java API for LEGO® Inventor Hub (51515) control via Bluetooth Classic on Windows.</description>
     <url>https://github.com/JuniorJacki/RemoteBrick</url>
