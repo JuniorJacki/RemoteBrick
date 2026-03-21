@@ -814,7 +814,7 @@ public class Hub {
 
         private void updateHubData(SimpleJsonArray hubDataArray) {
             boolean newValue = false;
-            SimpleJsonArray acceleration = hubDataArray.getJSONArray(7);
+            SimpleJsonArray acceleration = hubDataArray.getJSONArray(6);
             if (hub.getAccelerationX() != acceleration.getInt(0)) {
                 hub.accelerationX.set(acceleration.getInt(0));
                 newValue = true;
@@ -829,7 +829,7 @@ public class Hub {
             }
             if (newValue) {newAccelerationValues(hub.getAccelerationX(), hub.getAccelerationY(), hub.getAccelerationZ()); newValue = false;}
 
-            SimpleJsonArray rotation = hubDataArray.getJSONArray(8);
+            SimpleJsonArray rotation = hubDataArray.getJSONArray(7);
             if (hub.getRotationX() != rotation.getInt(0)) {
                 hub.rotationX.set(rotation.getInt(0));
                 newValue = true;
@@ -844,7 +844,7 @@ public class Hub {
             }
             if (newValue) {newRotationValues(hub.getRotationX(), hub.getRotationY(), hub.getRotationZ()); newValue = false;}
 
-            SimpleJsonArray orientation = hubDataArray.optJSONArray(9);
+            SimpleJsonArray orientation = hubDataArray.optJSONArray(8);
             if (orientation != null) {
                 if (hub.getYaw() != orientation.getInt(0)) {
                     hub.yaw.set(orientation.getInt(0));
@@ -861,13 +861,13 @@ public class Hub {
                 if (newValue) {newOrientationValues(hub.getYaw(), hub.getPitch(), hub.getRoll());}
             }
 
-            if (!hub.getUnknownData().equals(hubDataArray.getString(10))) {
-                hub.unknownData.set(hubDataArray.optString(10));
+            if (!hub.getUnknownData().equals(hubDataArray.getString(9))) {
+                hub.unknownData.set(hubDataArray.optString(9));
                 newUnknownValue(hub.unknownData.get());
             }
 
-            if (hub.getProgramTime() != hubDataArray.optLong(11)) {
-                hub.programTime.set(hubDataArray.optLong(11));
+            if (hub.getProgramTime() != hubDataArray.optLong(10)) {
+                hub.programTime.set(hubDataArray.optLong(10));
                 newProgramDurationValue(hub.programTime.get());
             }
         }
